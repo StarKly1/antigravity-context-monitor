@@ -19,13 +19,21 @@ A lightweight, zero-dependency Antigravity plugin that adds a native-styled live
 
 ## Installation
 
-### Option 1: Antigravity CLI (Recommended)
+### Option 1: Ask Antigravity (Easiest)
+
+Paste this directly into an Antigravity chat:
+
+```text
+Install the Antigravity plugin from https://github.com/StarKly1/antigravity-context-monitor into ~/.gemini/config/plugins/context-monitor and enable it
+```
+
+### Option 2: Antigravity CLI
 
 ```bash
 agy plugin install https://github.com/StarKly1/antigravity-context-monitor
 ```
 
-### Option 2: Git Clone
+### Option 3: Git Clone
 
 **Windows (PowerShell):**
 ```powershell
@@ -37,7 +45,7 @@ git clone https://github.com/StarKly1/antigravity-context-monitor.git "$env:USER
 git clone https://github.com/StarKly1/antigravity-context-monitor.git ~/.gemini/config/plugins/context-monitor
 ```
 
-### Option 3: Manual ZIP
+### Option 4: Manual ZIP
 
 Download and extract the repository into `~/.gemini/config/plugins/context-monitor` (on Windows: `%USERPROFILE%\.gemini\config\plugins\context-monitor`).
 
