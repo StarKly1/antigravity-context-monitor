@@ -117,41 +117,65 @@ function parseTranscriptRecords(filePath) {
   return records;
 }
 
-function makeEmptyPoolBucket() {
-  return {
-    h5Tokens: 0,
-    h5TotalWithCache: 0,
-    h5Calls: 0,
-    h5Sub: 0,
-    reset5hSec: 0,
-    w7Tokens: 0,
-    w7TotalWithCache: 0,
-    w7Calls: 0,
-    w7Sub: 0,
-    reset7dSec: 0,
-    _oldestH5Ts: 0,
-    _oldestW7Ts: 0,
-  };
-}
+function aggregatePoolFixedCycles(records, now) {
+  if (records.length === 0) {
+    return {
+      h5Tokens: 0, h5TotalWithCache: 0, h5Calls: 0, h5Sub: 0, reset5hSec: 0,
+      w7Tokens: 0, w7TotalWithCache: 0, w7Calls: 0, w7Sub: 0, reset7dSec: 0,
+    };
+  }
 
-function finalizePoolBucket(bucket, now) {
-  const reset5hSec = bucket._oldestH5Ts
-    ? Math.max(0, Math.floor((bucket._oldestH5Ts + FIVE_HOURS_MS - now) / 1000))
-    : 0;
-  const reset7dSec = bucket._oldestW7Ts
-    ? Math.max(0, Math.floor((bucket._oldestW7Ts + SEVEN_DAYS_MS - now) / 1000))
-    : 0;
+  records.sort((a, b) => a.tsMs - b.tsMs);
+
+  // Reconstruct Antigravity's fixed-epoch cycles (a cycle starts on the first
+  // call when no cycle is active, lasts windowMs, then resets completely).
+  let h5CycleStart = 0;
+  let w7CycleStart = 0;
+  for (const rec of records) {
+    if (!h5CycleStart || rec.tsMs >= h5CycleStart + FIVE_HOURS_MS) {
+      h5CycleStart = rec.tsMs;
+    }
+    if (!w7CycleStart || rec.tsMs >= w7CycleStart + SEVEN_DAYS_MS) {
+      w7CycleStart = rec.tsMs;
+    }
+  }
+
+  const h5Active = h5CycleStart > 0 && now < h5CycleStart + FIVE_HOURS_MS;
+  const w7Active = w7CycleStart > 0 && now < w7CycleStart + SEVEN_DAYS_MS;
+
+  let h5Tokens = 0, h5TotalWithCache = 0, h5Calls = 0, h5Sub = 0;
+  let w7Tokens = 0, w7TotalWithCache = 0, w7Calls = 0, w7Sub = 0;
+
+  for (const rec of records) {
+    const billed = rec.uncachedInput + rec.output;
+    const totalWithCache = billed + rec.cacheRead;
+
+    if (w7Active && rec.tsMs >= w7CycleStart) {
+      w7Tokens += billed;
+      w7TotalWithCache += totalWithCache;
+      w7Calls += 1;
+      if (rec.isSubagent) w7Sub += 1;
+    }
+
+    if (h5Active && rec.tsMs >= h5CycleStart) {
+      h5Tokens += billed;
+      h5TotalWithCache += totalWithCache;
+      h5Calls += 1;
+      if (rec.isSubagent) h5Sub += 1;
+    }
+  }
+
   return {
-    h5Tokens: bucket.h5Tokens,
-    h5TotalWithCache: bucket.h5TotalWithCache,
-    h5Calls: bucket.h5Calls,
-    h5Sub: bucket.h5Sub,
-    reset5hSec,
-    w7Tokens: bucket.w7Tokens,
-    w7TotalWithCache: bucket.w7TotalWithCache,
-    w7Calls: bucket.w7Calls,
-    w7Sub: bucket.w7Sub,
-    reset7dSec,
+    h5Tokens,
+    h5TotalWithCache,
+    h5Calls,
+    h5Sub,
+    reset5hSec: h5Active ? Math.max(0, Math.floor((h5CycleStart + FIVE_HOURS_MS - now) / 1000)) : 0,
+    w7Tokens,
+    w7TotalWithCache,
+    w7Calls,
+    w7Sub,
+    reset7dSec: w7Active ? Math.max(0, Math.floor((w7CycleStart + SEVEN_DAYS_MS - now) / 1000)) : 0,
   };
 }
 
@@ -161,14 +185,13 @@ function computeUsageWindows() {
     return usageWindowsCache.data;
   }
 
-  const cutoff5h = now - FIVE_HOURS_MS;
-  const cutoff7d = now - SEVEN_DAYS_MS;
+  const cutoff14d = now - 2 * SEVEN_DAYS_MS;
   const brainDir = path.join(getAppDataDir(), 'brain');
 
-  const pools = {
-    gemini: makeEmptyPoolBucket(),
-    argon: makeEmptyPoolBucket(),
-    claude_gpt: makeEmptyPoolBucket(),
+  const poolRecords = {
+    gemini: [],
+    argon: [],
+    claude_gpt: [],
   };
 
   const seenPaths = new Set();
@@ -185,7 +208,7 @@ function computeUsageWindows() {
         continue;
       }
       if (!stat.isFile()) continue;
-      if (now - stat.mtimeMs > SEVEN_DAYS_MS) continue;
+      if (now - stat.mtimeMs > 2 * SEVEN_DAYS_MS) continue;
 
       seenPaths.add(filePath);
       let cached = transcriptCache.get(filePath);
@@ -195,44 +218,23 @@ function computeUsageWindows() {
       }
 
       for (const rec of cached.records) {
-        if (rec.tsMs < cutoff7d) continue;
-        const bucket = pools[rec.modelFamily];
-        if (!bucket) continue;
-
-        const billed = rec.uncachedInput + rec.output;
-        const totalWithCache = billed + rec.cacheRead;
-
-        bucket.w7Tokens += billed;
-        bucket.w7TotalWithCache += totalWithCache;
-        bucket.w7Calls += 1;
-        if (rec.isSubagent) bucket.w7Sub += 1;
-        if (!bucket._oldestW7Ts || rec.tsMs < bucket._oldestW7Ts) {
-          bucket._oldestW7Ts = rec.tsMs;
-        }
-
-        if (rec.tsMs >= cutoff5h) {
-          bucket.h5Tokens += billed;
-          bucket.h5TotalWithCache += totalWithCache;
-          bucket.h5Calls += 1;
-          if (rec.isSubagent) bucket.h5Sub += 1;
-          if (!bucket._oldestH5Ts || rec.tsMs < bucket._oldestH5Ts) {
-            bucket._oldestH5Ts = rec.tsMs;
-          }
-        }
+        if (rec.tsMs < cutoff14d) continue;
+        const list = poolRecords[rec.modelFamily];
+        if (list) list.push(rec);
       }
     }
   } catch {}
 
-  // Prune stale cache entries no longer within the 7-day window
+  // Prune stale cache entries older than 14 days
   for (const key of transcriptCache.keys()) {
     if (!seenPaths.has(key)) transcriptCache.delete(key);
   }
 
   const result = {
     updatedAt: new Date(now).toISOString(),
-    gemini: finalizePoolBucket(pools.gemini, now),
-    argon: finalizePoolBucket(pools.argon, now),
-    claude_gpt: finalizePoolBucket(pools.claude_gpt, now),
+    gemini: aggregatePoolFixedCycles(poolRecords.gemini, now),
+    argon: aggregatePoolFixedCycles(poolRecords.argon, now),
+    claude_gpt: aggregatePoolFixedCycles(poolRecords.claude_gpt, now),
   };
 
   usageWindowsCache = { computedAtMs: now, data: result };
