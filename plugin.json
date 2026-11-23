@@ -1,0 +1,6 @@
+{
+  "name": "context-monitor",
+  "description": "Live native-styled side-pane HUD for context window size, prompt cache TTL, and rolling 5-hour/weekly quota pools.",
+  "author": "StarKly1",
+  "repository": "https://github.com/StarKly1/antigravity-context-monitor"
+}

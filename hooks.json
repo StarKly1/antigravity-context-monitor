@@ -1,0 +1,18 @@
+{
+  "context-monitor": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "node ./scripts/context_status.mjs",
+        "timeout": 10
+      }
+    ],
+    "PostInvocation": [
+      {
+        "type": "command",
+        "command": "node ./scripts/context_status.mjs",
+        "timeout": 10
+      }
+    ]
+  }
+}

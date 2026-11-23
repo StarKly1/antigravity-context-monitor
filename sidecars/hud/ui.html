@@ -1,0 +1,1766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Context Monitor</title>
+  <script src="/preload.js"></script>
+  <style>
+    :root,
+    [data-theme='light'] {
+      --ink: #16181d;
+      --ink-soft: #5a606c;
+      --ink-faint: #878e9b;
+      --canvas: #f5f6f8;
+      --surface: #ffffff;
+      --sunken: rgba(15, 20, 30, 0.05);
+      --control: rgba(15, 20, 30, 0.055);
+      --hover: rgba(15, 20, 30, 0.085);
+      --edge: rgba(15, 20, 30, 0.09);
+      --edge-strong: rgba(15, 20, 30, 0.16);
+      --ring-track: rgba(15, 20, 30, 0.11);
+      --accent: #3b6ff5;
+      --accent-soft: rgba(59, 111, 245, 0.11);
+      --ok: #3f9142;
+      --ok-soft: rgba(63, 145, 66, 0.11);
+      --warn: #c77b12;
+      --warn-soft: rgba(199, 123, 18, 0.12);
+      --bad: #cf3d3d;
+      --bad-soft: rgba(207, 61, 61, 0.11);
+      --ice: #0284c7;
+      --ice-ink: #0369a1;
+      --ice-bg-1: rgba(224, 242, 254, 0.82);
+      --ice-bg-2: rgba(186, 230, 253, 0.38);
+      --ice-edge: rgba(2, 132, 199, 0.26);
+      --ice-flake: rgba(2, 132, 199, 0.38);
+      --ice-track: rgba(2, 132, 199, 0.16);
+      --heavy-bg-1: rgba(254, 243, 199, 0.72);
+      --heavy-bg-2: rgba(251, 191, 36, 0.12);
+      --heavy-edge: rgba(199, 123, 18, 0.24);
+      --heavy-spark: rgba(199, 123, 18, 0.45);
+      --fire-bg-1: rgba(254, 215, 170, 0.78);
+      --fire-bg-2: rgba(248, 113, 113, 0.22);
+      --fire-edge: rgba(207, 61, 61, 0.32);
+      --fire-glow: rgba(234, 88, 12, 0.22);
+      --fire-spark-1: rgba(234, 88, 12, 0.72);
+      --fire-spark-2: rgba(207, 61, 61, 0.65);
+      --radius-card: 12px;
+      --radius-ctrl: 8px;
+      --shadow-sm: 0 1px 2px rgba(15, 20, 30, 0.05);
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+      --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme='light']) {
+        --ink: #eef0f4;
+        --ink-soft: #969ca8;
+        --ink-faint: #6c727f;
+        --canvas: #0e0f12;
+        --surface: #15171b;
+        --sunken: rgba(255, 255, 255, 0.05);
+        --control: rgba(255, 255, 255, 0.065);
+        --hover: rgba(255, 255, 255, 0.10);
+        --edge: rgba(255, 255, 255, 0.085);
+        --edge-strong: rgba(255, 255, 255, 0.15);
+        --ring-track: rgba(255, 255, 255, 0.12);
+        --accent: #7aa7ff;
+        --accent-soft: rgba(122, 167, 255, 0.14);
+        --ok: #58a653;
+        --ok-soft: rgba(88, 166, 83, 0.14);
+        --warn: #e0911f;
+        --warn-soft: rgba(224, 145, 31, 0.14);
+        --bad: #e35d5b;
+        --bad-soft: rgba(227, 93, 91, 0.15);
+        --ice: #7dd3fc;
+        --ice-ink: #bae6fd;
+        --ice-bg-1: rgba(14, 116, 144, 0.22);
+        --ice-bg-2: rgba(56, 189, 248, 0.08);
+        --ice-edge: rgba(125, 211, 252, 0.28);
+        --ice-flake: rgba(224, 242, 254, 0.55);
+        --ice-track: rgba(125, 211, 252, 0.18);
+        --heavy-bg-1: rgba(180, 83, 9, 0.17);
+        --heavy-bg-2: rgba(245, 158, 11, 0.05);
+        --heavy-edge: rgba(224, 145, 31, 0.24);
+        --heavy-spark: rgba(224, 145, 31, 0.48);
+        --fire-bg-1: rgba(185, 28, 28, 0.26);
+        --fire-bg-2: rgba(234, 88, 12, 0.13);
+        --fire-edge: rgba(227, 93, 91, 0.36);
+        --fire-glow: rgba(249, 115, 22, 0.30);
+        --fire-spark-1: rgba(251, 146, 60, 0.85);
+        --fire-spark-2: rgba(227, 93, 91, 0.80);
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.28);
+      }
+    }
+
+    [data-theme='dark'] {
+      --ink: #eef0f4;
+      --ink-soft: #969ca8;
+      --ink-faint: #6c727f;
+      --canvas: #0e0f12;
+      --surface: color-mix(in srgb, var(--canvas) 94%, #ffffff);
+      --sunken: rgba(255, 255, 255, 0.05);
+      --control: rgba(255, 255, 255, 0.065);
+      --hover: rgba(255, 255, 255, 0.10);
+      --edge: rgba(255, 255, 255, 0.085);
+      --edge-strong: rgba(255, 255, 255, 0.15);
+      --ring-track: rgba(255, 255, 255, 0.12);
+      --accent: #7aa7ff;
+      --accent-soft: rgba(122, 167, 255, 0.14);
+      --ok: #58a653;
+      --ok-soft: rgba(88, 166, 83, 0.14);
+      --warn: #e0911f;
+      --warn-soft: rgba(224, 145, 31, 0.14);
+      --bad: #e35d5b;
+      --bad-soft: rgba(227, 93, 91, 0.15);
+      --ice: #7dd3fc;
+      --ice-ink: #bae6fd;
+      --ice-bg-1: rgba(14, 116, 144, 0.22);
+      --ice-bg-2: rgba(56, 189, 248, 0.08);
+      --ice-edge: rgba(125, 211, 252, 0.28);
+      --ice-flake: rgba(224, 242, 254, 0.55);
+      --ice-track: rgba(125, 211, 252, 0.18);
+      --heavy-bg-1: rgba(180, 83, 9, 0.17);
+      --heavy-bg-2: rgba(245, 158, 11, 0.05);
+      --heavy-edge: rgba(224, 145, 31, 0.24);
+      --heavy-spark: rgba(224, 145, 31, 0.48);
+      --fire-bg-1: rgba(185, 28, 28, 0.26);
+      --fire-bg-2: rgba(234, 88, 12, 0.13);
+      --fire-edge: rgba(227, 93, 91, 0.36);
+      --fire-glow: rgba(249, 115, 22, 0.30);
+      --fire-spark-1: rgba(251, 146, 60, 0.85);
+      --fire-spark-2: rgba(227, 93, 91, 0.80);
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.28);
+    }
+
+    [data-follow-host][data-theme='light'] {
+      --ink: var(--foreground, #16181d);
+      --canvas: var(--background, #f5f6f8);
+      --accent: var(--primary, #3b6ff5);
+      --surface: var(--card-bg, color-mix(in srgb, var(--canvas) 35%, #ffffff));
+      --mono: var(--editor-font-family, ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace);
+      --ink-soft: color-mix(in srgb, var(--ink) 64%, var(--canvas));
+      --ink-faint: color-mix(in srgb, var(--ink) 45%, var(--canvas));
+      --sunken: color-mix(in srgb, var(--ink) 5%, transparent);
+      --control: color-mix(in srgb, var(--ink) 5.5%, transparent);
+      --hover: color-mix(in srgb, var(--ink) 8.5%, transparent);
+      --edge: color-mix(in srgb, var(--ink) 9%, transparent);
+      --edge-strong: color-mix(in srgb, var(--ink) 16%, transparent);
+      --ring-track: color-mix(in srgb, var(--ink) 11%, transparent);
+      --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+    }
+
+    [data-follow-host][data-theme='dark'] {
+      --ink: var(--foreground, #eef0f4);
+      --canvas: var(--background, #0e0f12);
+      --accent: var(--primary, #7aa7ff);
+      --surface: color-mix(in srgb, var(--canvas) 95%, #ffffff);
+      --mono: var(--editor-font-family, ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace);
+      --ink-soft: color-mix(in srgb, var(--ink) 62%, var(--canvas));
+      --ink-faint: color-mix(in srgb, var(--ink) 44%, var(--canvas));
+      --sunken: color-mix(in srgb, var(--ink) 5%, transparent);
+      --control: color-mix(in srgb, var(--ink) 6.5%, transparent);
+      --hover: color-mix(in srgb, var(--ink) 10%, transparent);
+      --edge: color-mix(in srgb, var(--ink) 8.5%, transparent);
+      --edge-strong: color-mix(in srgb, var(--ink) 15%, transparent);
+      --ring-track: color-mix(in srgb, var(--ink) 12%, transparent);
+      --accent-soft: color-mix(in srgb, var(--accent) 15%, transparent);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--canvas);
+      color: var(--ink);
+      font-family: var(--font);
+      font-size: 13px;
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .tabular { font-variant-numeric: tabular-nums; }
+
+    .shell {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Topbar (Blended, Native Antigravity Chrome) */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 11px 14px 9px;
+      background: var(--canvas);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .brand-icon {
+      flex-shrink: 0;
+      color: var(--ink-soft);
+    }
+
+    .brand-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .seg {
+      display: inline-flex;
+      padding: 2px;
+      border-radius: var(--radius-ctrl);
+      background: var(--surface);
+      border: 1px solid var(--edge);
+      flex-shrink: 0;
+    }
+
+    .seg button {
+      border: none;
+      background: transparent;
+      color: var(--ink-soft);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.14s ease, color 0.14s ease;
+    }
+
+    .seg button:hover { color: var(--ink); }
+
+    .seg button.active {
+      background: var(--control);
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .seg button:focus-visible,
+    .compact-btn:focus-visible,
+    .cal-btn:focus-visible,
+    .pool-tab:focus-visible,
+    .cal-save:focus-visible,
+    .cal-input:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Main Content — Padded Rounded Card Stack */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 2px 12px 12px;
+      gap: 12px;
+    }
+
+    .data-view {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .data-view.hidden { display: none; }
+
+    /* Shared Antigravity Settings-Style Grouped Card */
+    .ag-group {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .ag-group-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 0 2px;
+    }
+
+    .ag-group-title {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+
+    .ag-card {
+      border-radius: var(--radius-card);
+      border: 1px solid var(--edge);
+      background: var(--surface);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Inset Warning Pill Banner */
+    .warn-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--heavy-edge);
+      background: var(--warn-soft);
+      font-size: 12px;
+    }
+
+    .warn-banner.show { display: flex; }
+
+    .warn-banner.critical {
+      border-color: var(--fire-edge);
+      background: var(--bad-soft);
+    }
+
+    .warn-text {
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .warn-text strong { font-weight: 600; }
+    .warn-text code { font-family: var(--mono); font-size: 11px; }
+
+    .warn-pct {
+      font-family: var(--mono);
+      font-weight: 600;
+      flex-shrink: 0;
+      color: var(--warn);
+    }
+
+    .warn-banner.critical .warn-pct { color: var(--bad); }
+
+    /* Radial Hero Row inside Context Card (with Heavy ember & Critical fiery states) */
+    .hero {
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      padding: 14px;
+      border-bottom: 1px solid var(--edge);
+      transition: background 280ms ease, border-color 280ms ease;
+    }
+
+    .hero.is-heavy {
+      background: radial-gradient(120% 90% at 24% 105%, var(--heavy-bg-1) 0%, var(--heavy-bg-2) 55%, transparent 100%);
+      border-bottom-color: var(--heavy-edge);
+    }
+
+    .hero.is-critical {
+      background:
+        radial-gradient(110% 95% at 22% 110%, var(--fire-bg-1) 0%, var(--fire-bg-2) 52%, transparent 100%),
+        linear-gradient(0deg, var(--fire-bg-2) 0%, transparent 70%);
+      border-bottom-color: var(--fire-edge);
+    }
+
+    .ember-layer {
+      display: none;
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .hero.is-heavy .ember-layer,
+    .hero.is-critical .ember-layer { display: block; }
+
+    .ember {
+      position: absolute;
+      bottom: -8px;
+      border-radius: 50%;
+      animation: ember-rise linear infinite;
+    }
+
+    .hero.is-heavy .ember {
+      background: var(--heavy-spark);
+      box-shadow: 0 0 4px var(--heavy-spark);
+    }
+
+    .hero.is-heavy .ember.e4,
+    .hero.is-heavy .ember.e5,
+    .hero.is-heavy .ember.e6 { display: none; }
+
+    .hero.is-critical .ember {
+      background: var(--fire-spark-1);
+      box-shadow: 0 0 6px var(--fire-spark-2);
+    }
+
+    .ember.e1 { left: 10%; width: 3px; height: 3px; animation-duration: 4.8s; animation-delay: 0s; }
+    .ember.e2 { left: 26%; width: 2.5px; height: 2.5px; animation-duration: 5.9s; animation-delay: -1.7s; }
+    .ember.e3 { left: 45%; width: 3px; height: 3px; animation-duration: 5.2s; animation-delay: -3.4s; }
+    .ember.e4 { left: 61%; width: 3.5px; height: 3.5px; animation-duration: 4.4s; animation-delay: -0.9s; }
+    .ember.e5 { left: 77%; width: 2.5px; height: 2.5px; animation-duration: 6.3s; animation-delay: -4.1s; }
+    .ember.e6 { left: 90%; width: 3px; height: 3px; animation-duration: 5.5s; animation-delay: -2.5s; }
+
+    .hero.is-heavy .ember.e1 { animation-duration: 6.4s; animation-delay: 0s; }
+    .hero.is-heavy .ember.e2 { animation-duration: 7.6s; animation-delay: -2.6s; }
+    .hero.is-heavy .ember.e3 { animation-duration: 6.9s; animation-delay: -4.8s; }
+
+    @keyframes ember-rise {
+      0%   { transform: translate(0, 0) scale(0.85); opacity: 0; }
+      15%  { opacity: 0.85; }
+      55%  { transform: translate(-5px, -56px) scale(0.75); opacity: 0.65; }
+      85%  { opacity: 0.25; }
+      100% { transform: translate(4px, -112px) scale(0.35); opacity: 0; }
+    }
+
+    @keyframes fire-pulse {
+      0%, 100% { filter: drop-shadow(0 0 5px var(--fire-glow)); }
+      50%      { filter: drop-shadow(0 0 10px var(--fire-spark-1)); }
+    }
+
+    .radial-wrap {
+      position: relative;
+      z-index: 1;
+      width: 62px;
+      height: 62px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .radial-svg {
+      transform: rotate(-90deg);
+      width: 62px;
+      height: 62px;
+    }
+
+    .radial-track {
+      fill: none;
+      stroke: var(--ring-track);
+      stroke-width: 5.2;
+    }
+
+    .radial-fill {
+      fill: none;
+      stroke: var(--ok);
+      stroke-width: 5.2;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 280ms cubic-bezier(0.2, 0.8, 0.2, 1), stroke 200ms ease;
+    }
+
+    .radial-pct {
+      position: absolute;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .hero.is-heavy .radial-svg {
+      filter: drop-shadow(0 0 4px var(--heavy-edge));
+    }
+
+    .hero.is-critical .radial-svg {
+      animation: fire-pulse 2.2s ease-in-out infinite;
+    }
+
+    .hero-info {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .hero-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .hero-total {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
+    .hero-den {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--ink-faint);
+      margin-left: 2px;
+    }
+
+    .hero-model {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--ink-soft);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .hero-headroom {
+      font-size: 11.5px;
+      color: var(--ink-faint);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Prompt Cache Row inside Context Card (with Frozen / Snow Cold State) */
+    .cache-strip {
+      position: relative;
+      overflow: hidden;
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--edge);
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      transition: background 260ms ease, border-color 260ms ease;
+    }
+
+    .cache-strip.is-cold {
+      background: linear-gradient(135deg, var(--ice-bg-1) 0%, var(--ice-bg-2) 100%);
+      border-bottom-color: var(--ice-edge);
+    }
+
+    .snow-layer {
+      display: none;
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .cache-strip.is-cold .snow-layer { display: block; }
+
+    .flake {
+      position: absolute;
+      top: -10px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--ice-flake);
+      animation: snowfall linear infinite;
+    }
+
+    .flake.f1 { left: 10%; width: 3px; height: 3px; animation-duration: 5.5s; animation-delay: 0s; }
+    .flake.f2 { left: 26%; width: 4px; height: 4px; animation-duration: 7.2s; animation-delay: -2.1s; }
+    .flake.f3 { left: 44%; width: 2.5px; height: 2.5px; animation-duration: 6.1s; animation-delay: -4.0s; }
+    .flake.f4 { left: 62%; width: 3.5px; height: 3.5px; animation-duration: 8.0s; animation-delay: -1.4s; }
+    .flake.f5 { left: 79%; width: 3px; height: 3px; animation-duration: 6.6s; animation-delay: -3.2s; }
+    .flake.f6 { left: 91%; width: 4px; height: 4px; animation-duration: 7.5s; animation-delay: -5.1s; }
+
+    @keyframes snowfall {
+      0%   { transform: translate(0, 0); opacity: 0; }
+      15%  { opacity: 0.9; }
+      85%  { opacity: 0.7; }
+      100% { transform: translate(8px, 76px); opacity: 0; }
+    }
+
+    .cache-head {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .cache-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    .cache-strip.is-cold .cache-title {
+      color: var(--ice-ink);
+      font-weight: 600;
+    }
+
+    .frost-icon {
+      display: none;
+      color: var(--ice);
+      flex-shrink: 0;
+    }
+
+    .cache-strip.is-cold .frost-icon { display: inline-block; }
+
+    .cache-ttl-readout {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .cache-strip.is-cold .cache-ttl-readout {
+      color: var(--ice-ink);
+      padding: 1px 7px;
+      border-radius: 999px;
+      border: 1px solid var(--ice-edge);
+      background: rgba(255, 255, 255, 0.10);
+      font-size: 10.5px;
+    }
+
+    .cache-bar-track {
+      position: relative;
+      z-index: 1;
+      height: 5px;
+      width: 100%;
+      border-radius: 999px;
+      background: var(--ring-track);
+      overflow: hidden;
+    }
+
+    .cache-strip.is-cold .cache-bar-track {
+      background: var(--ice-track);
+      border: 1px solid var(--ice-edge);
+    }
+
+    .cache-bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: var(--ok);
+      transition: width 260ms ease, background 200ms ease;
+    }
+
+    .cache-strip.is-cold .cache-bar-fill {
+      width: 100% !important;
+      background: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 6px,
+        var(--ice-edge) 6px,
+        var(--ice-edge) 12px
+      );
+    }
+
+    .cache-subline {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--ink-soft);
+    }
+
+    .cache-strip.is-cold .cache-subline {
+      color: var(--ice-ink);
+      opacity: 0.88;
+    }
+
+    /* Metrics Rows inside Context Card */
+    .ledger {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ledger-full {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--edge);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .ledger-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .ledger-cell {
+      padding: 11px 14px;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .ledger-cell:first-child {
+      border-right: 1px solid var(--edge);
+    }
+
+    .cell-label {
+      font-size: 11px;
+      color: var(--ink-soft);
+      font-weight: 500;
+    }
+
+    .cell-value {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .cell-sub {
+      font-size: 11px;
+      color: var(--ink-faint);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .hit-right {
+      text-align: right;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    /* Antigravity Settings-Style Usage Limits Section */
+    .cal-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border: 1px solid var(--edge);
+      background: var(--surface);
+      color: var(--ink-soft);
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+    }
+
+    .cal-btn:hover {
+      background: var(--hover);
+      color: var(--ink);
+    }
+
+    .cal-btn.active {
+      background: var(--control);
+      color: var(--ink);
+      border-color: var(--edge-strong);
+    }
+
+    .pool-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      padding: 3px;
+      border-radius: 10px;
+      background: var(--surface);
+      border: 1px solid var(--edge);
+    }
+
+    .pool-tab {
+      border: none;
+      background: transparent;
+      color: var(--ink-soft);
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 4px;
+      border-radius: 7px;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: background 0.14s ease, color 0.14s ease;
+    }
+
+    .pool-tab:hover { color: var(--ink); }
+
+    .pool-tab.active {
+      background: var(--control);
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .cal-drawer {
+      display: none;
+      flex-direction: column;
+      gap: 9px;
+      padding: 12px 14px;
+      border-radius: var(--radius-card);
+      border: 1px solid var(--edge);
+      background: var(--surface);
+      font-size: 11.5px;
+    }
+
+    .cal-drawer.show { display: flex; }
+
+    .cal-drawer-title {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .cal-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .cal-field span {
+      color: var(--ink-soft);
+      font-size: 11px;
+    }
+
+    .cal-input {
+      width: 100%;
+      min-width: 0;
+      padding: 5px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--edge-strong);
+      background: var(--canvas);
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 11.5px;
+    }
+
+    .cal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .cal-save {
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #ffffff;
+      font-family: var(--font);
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 5px 12px;
+      cursor: pointer;
+    }
+
+    .cal-save:hover { opacity: 0.92; }
+
+    /* Antigravity Settings Quota Rows (Title + Subline on Left, % + Circular Ring on Right) */
+    .quota-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+    }
+
+    .quota-row + .quota-row {
+      border-top: 1px solid var(--edge);
+    }
+
+    .quota-left {
+      min-width: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .quota-title {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .quota-desc {
+      font-size: 11.5px;
+      color: var(--ink-soft);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .quota-right {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .quota-pct {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      min-width: 34px;
+      text-align: right;
+    }
+
+    .quota-ring {
+      width: 26px;
+      height: 26px;
+      transform: rotate(-90deg);
+      flex-shrink: 0;
+    }
+
+    .quota-ring-track {
+      fill: none;
+      stroke: var(--ring-track);
+      stroke-width: 3.1;
+    }
+
+    .quota-ring-fill {
+      fill: none;
+      stroke: var(--ok);
+      stroke-width: 3.1;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 280ms cubic-bezier(0.2, 0.8, 0.2, 1), stroke 200ms ease;
+    }
+
+    .usage-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 0 4px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ink-faint);
+    }
+
+    .usage-summary span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Empty State */
+    .empty-state {
+      display: none;
+      flex: 1;
+      padding: 28px 18px;
+      text-align: center;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border-radius: var(--radius-card);
+      border: 1px solid var(--edge);
+      background: var(--surface);
+    }
+
+    .empty-state.show { display: flex; }
+
+    .empty-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      border: 1px solid var(--edge);
+      background: var(--sunken);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ink-faint);
+    }
+
+    .empty-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .empty-desc {
+      font-size: 12px;
+      color: var(--ink-soft);
+      max-width: 230px;
+      line-height: 1.45;
+    }
+
+    /* Sticky Footer */
+    .footer {
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 14px;
+      border-top: 1px solid var(--edge);
+      background: var(--canvas);
+    }
+
+    .footer-session {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ink-faint);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+
+    .compact-btn {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid var(--edge-strong);
+      background: var(--surface);
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 10px;
+      border-radius: var(--radius-ctrl);
+      cursor: pointer;
+      transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+    }
+
+    .compact-btn:hover { background: var(--hover); }
+
+    .compact-btn.urgent {
+      border-color: color-mix(in srgb, var(--warn) 50%, transparent);
+      background: var(--warn-soft);
+      color: var(--warn);
+      font-weight: 600;
+    }
+
+    .compact-btn.critical {
+      border-color: color-mix(in srgb, var(--bad) 50%, transparent);
+      background: var(--bad-soft);
+      color: var(--bad);
+      font-weight: 600;
+    }
+
+    @media (max-width: 300px) {
+      .main { padding: 2px 10px 10px; gap: 10px; }
+      .hero { padding: 12px; gap: 10px; }
+      .hero-total { font-size: 16.5px; }
+      .cache-strip, .ledger-full, .ledger-cell, .quota-row { padding-left: 12px; padding-right: 12px; }
+      .topbar, .footer { padding-left: 12px; padding-right: 12px; }
+      .cell-value { font-size: 13.5px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .flake, .ember { animation: none; opacity: 0.35; }
+      .flake { top: 35%; }
+      .ember { bottom: 35%; }
+      .hero.is-critical .radial-svg { animation: none; filter: drop-shadow(0 0 6px var(--fire-glow)); }
+      .radial-fill, .cache-bar-fill, .quota-ring-fill, .cache-strip, .hero { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <!-- Header -->
+    <header class="topbar">
+      <div class="brand">
+        <svg class="brand-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <rect x="2" y="3" width="12" height="10" rx="2.5" stroke="currentColor" stroke-width="1.4"/>
+          <path d="M5 9.5L7 7.5L9 9L11.5 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="brand-title">Context Monitor</span>
+      </div>
+      <div class="seg" role="group" aria-label="Context window scale">
+        <button id="win-200" type="button" class="active" title="Practical 200k working budget" onclick="setWindow(200000)">200k</button>
+        <button id="win-1m" type="button" title="Native 1M model context limit" onclick="setWindow(1000000)">1M</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <!-- Empty State -->
+      <section id="empty-state" class="empty-state show" role="status">
+        <div class="empty-icon">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2.5 2"/>
+            <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="empty-title">Waiting for model activity</div>
+        <p class="empty-desc">Send a message in Antigravity to track context usage and prompt cache warmth.</p>
+      </section>
+
+      <!-- Active Data View -->
+      <div id="data-view" class="data-view hidden">
+        <!-- Warning Pill Banner (only >= 120k) -->
+        <div id="warn-banner" class="warn-banner" role="alert">
+          <span id="warn-text" class="warn-text"><strong>Heavy context</strong> · Run <code>/compact</code></span>
+          <span id="warn-pct" class="warn-pct tabular">69%</span>
+        </div>
+
+        <!-- Group 1: Session Context Card -->
+        <section class="ag-group" aria-label="Session context">
+          <div class="ag-card">
+            <!-- Radial Hero (with Heavy ember & Critical fiery states) -->
+            <div id="hero-section" class="hero" aria-label="Context window usage">
+              <div class="ember-layer" aria-hidden="true">
+                <span class="ember e1"></span>
+                <span class="ember e2"></span>
+                <span class="ember e3"></span>
+                <span class="ember e4"></span>
+                <span class="ember e5"></span>
+                <span class="ember e6"></span>
+              </div>
+
+              <div id="radial-progress" class="radial-wrap" role="progressbar" aria-label="Context window usage" aria-valuemin="0" aria-valuemax="200000" aria-valuenow="0">
+                <svg class="radial-svg" viewBox="0 0 68 68" aria-hidden="true">
+                  <circle class="radial-track" cx="34" cy="34" r="27"/>
+                  <circle id="radial-fill" class="radial-fill" cx="34" cy="34" r="27" stroke-dasharray="169.65" stroke-dashoffset="169.65"/>
+                </svg>
+                <span id="radial-pct" class="radial-pct tabular">0%</span>
+              </div>
+
+              <div class="hero-info">
+                <div class="hero-top">
+                  <div class="hero-total tabular">
+                    <span id="ctx-num">—</span><span id="ctx-den" class="hero-den">/ 200k</span>
+                  </div>
+                </div>
+                <div id="ctx-model" class="hero-model" title="">—</div>
+                <div id="ctx-headroom" class="hero-headroom tabular">— headroom left</div>
+              </div>
+            </div>
+
+            <!-- Prompt Cache Strip (with Frozen / Snow Cold State) -->
+            <div id="cache-strip" class="cache-strip" aria-label="Prompt cache status">
+              <div class="snow-layer" aria-hidden="true">
+                <span class="flake f1"></span>
+                <span class="flake f2"></span>
+                <span class="flake f3"></span>
+                <span class="flake f4"></span>
+                <span class="flake f5"></span>
+                <span class="flake f6"></span>
+              </div>
+
+              <div class="cache-head">
+                <span class="cache-title">
+                  <svg class="frost-icon" width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M8 1.5v13M2.4 4.75l11.2 6.5M13.6 4.75l-11.2 6.5" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
+                    <path d="M6.4 3l1.6 1.5L9.6 3M6.4 13l1.6-1.5L9.6 13M3.2 6.8l2 .5-.5-2M12.8 9.2l-2-.5.5 2M12.8 6.8l-2 .5.5-2M3.2 9.2l2-.5-.5 2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span id="cache-strip-title">Prompt Cache</span>
+                </span>
+                <span id="ttl-val" class="cache-ttl-readout tabular">—:—</span>
+              </div>
+
+              <div class="cache-bar-track" aria-hidden="true">
+                <div id="ttl-bar" class="cache-bar-fill"></div>
+              </div>
+
+              <div class="cache-subline tabular">
+                <span id="cache-breakdown">0 cached · 0 fresh</span>
+                <span id="ttl-state">5m window</span>
+              </div>
+            </div>
+
+            <!-- Session Metrics Ledger -->
+            <div class="ledger" aria-label="Session metrics">
+              <div class="ledger-full">
+                <div style="min-width: 0;">
+                  <div class="cell-label">Cache Hit</div>
+                  <div id="cache-val" class="cell-value tabular">—%</div>
+                </div>
+                <div class="hit-right">
+                  <div id="cache-sub" class="cell-sub">waiting for call</div>
+                  <div id="cache-saved" class="cell-sub tabular">0 cached</div>
+                </div>
+              </div>
+
+              <div class="ledger-pair">
+                <div class="ledger-cell">
+                  <div class="cell-label">Output</div>
+                  <div id="out-val" class="cell-value tabular">—</div>
+                  <div id="out-sub" class="cell-sub tabular">Last +0</div>
+                </div>
+                <div class="ledger-cell">
+                  <div class="cell-label">Activity</div>
+                  <div id="act-val" class="cell-value tabular">0t · 0c</div>
+                  <div id="act-sub" class="cell-sub tabular">±0 / step</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Group 2: Antigravity Settings-Style Usage Limits (2 Tabs: Gemini & Claude+GPT) -->
+        <section class="ag-group" aria-label="Model usage limits">
+          <div class="ag-group-head">
+            <span id="usage-group-title" class="ag-group-title">Gemini Models</span>
+            <button id="btn-calibrate" type="button" class="cal-btn" title="Calibrate limits" aria-label="Calibrate limits" aria-expanded="false" onclick="toggleCalibrate()">
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M11.5 2.5l2 2-7.5 7.5H4v-2l7.5-7.5z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>
+              </svg>
+              <span>Calibrate</span>
+            </button>
+          </div>
+
+          <div class="pool-tabs" role="tablist" aria-label="Model quota pools">
+            <button id="tab-gemini" type="button" role="tab" aria-selected="true" class="pool-tab active" onclick="selectPool('gemini')">Gemini</button>
+            <button id="tab-argon" type="button" role="tab" aria-selected="false" class="pool-tab" onclick="selectPool('argon')">Argon</button>
+            <button id="tab-claude-gpt" type="button" role="tab" aria-selected="false" class="pool-tab" onclick="selectPool('claude_gpt')">Claude+GPT</button>
+          </div>
+
+          <div id="cal-drawer" class="cal-drawer" aria-label="Calibrate pool ceilings">
+            <div id="cal-drawer-title" class="cal-drawer-title">Gemini Ceilings (tokens)</div>
+            <div id="cal-grid" class="cal-grid">
+              <label id="cal-h5-field" class="cal-field">
+                <span>5-Hour (M)</span>
+                <input id="inp-h5" class="cal-input tabular" type="number" step="0.5" min="0.5" value="3.0" />
+              </label>
+              <label class="cal-field">
+                <span>Weekly (M)</span>
+                <input id="inp-w7" class="cal-input tabular" type="number" step="0.5" min="0.5" value="10" />
+              </label>
+            </div>
+            <div class="cal-actions">
+              <button type="button" class="cal-save" onclick="saveCalibration()">Save</button>
+            </div>
+          </div>
+
+          <!-- Exact Antigravity Settings Quota Card -->
+          <div class="ag-card">
+            <div class="quota-row">
+              <div class="quota-left">
+                <div id="q7-title" class="quota-title">Weekly Limit Remaining</div>
+                <div id="q7-desc" class="quota-desc tabular">0 / 10M · Ready</div>
+              </div>
+              <div class="quota-right">
+                <span id="q7-pct" class="quota-pct tabular">100%</span>
+                <svg id="q7-progress" class="quota-ring" viewBox="0 0 28 28" role="progressbar" aria-label="Weekly limit remaining" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                  <circle class="quota-ring-track" cx="14" cy="14" r="11"/>
+                  <circle id="q7-ring" class="quota-ring-fill" cx="14" cy="14" r="11" stroke-dasharray="69.12" stroke-dashoffset="0"/>
+                </svg>
+              </div>
+            </div>
+
+            <div id="q5-row" class="quota-row">
+              <div class="quota-left">
+                <div class="quota-title">Five Hour Limit Remaining</div>
+                <div id="q5-desc" class="quota-desc tabular">0 / 3M · Ready</div>
+              </div>
+              <div class="quota-right">
+                <span id="q5-pct" class="quota-pct tabular">100%</span>
+                <svg id="q5-progress" class="quota-ring" viewBox="0 0 28 28" role="progressbar" aria-label="Five hour limit remaining" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                  <circle class="quota-ring-track" cx="14" cy="14" r="11"/>
+                  <circle id="q5-ring" class="quota-ring-fill" cx="14" cy="14" r="11" stroke-dasharray="69.12" stroke-dashoffset="0"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="usage-summary tabular">
+            <span id="q5-summary">5h: 0c (+0 sub)</span>
+            <span id="q7-summary">7d: 0c (+0 sub)</span>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Sticky Footer -->
+    <footer class="footer">
+      <span id="footer-session" class="footer-session">no active transcript</span>
+      <button id="compact-btn" type="button" class="compact-btn" title="Copy /compact" aria-label="Copy /compact" onclick="copyCompact()">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <rect x="5" y="5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+          <path d="M3.5 10.5V3.5C3.5 2.95 3.95 2.5 4.5 2.5H11.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        <span id="compact-label">/compact</span>
+      </button>
+    </footer>
+  </div>
+
+  <script>
+    const CACHE_TTL_SEC = 300;
+    const WARN_THRESHOLD = 120000;
+    const CRIT_THRESHOLD = 160000;
+    const RADIAL_CIRC = 2 * Math.PI * 27;
+    const QUOTA_RING_CIRC = 2 * Math.PI * 11;
+
+    let contextWindow = 200000;
+    try {
+      if (Number(localStorage.getItem('ctxMonitorWindow')) === 1000000) contextWindow = 1000000;
+    } catch {}
+
+    const DEFAULT_LIMITS = {
+      gemini:     { h5: 3000000, w7: 10000000 },
+      argon:      { h5: 3000000, w7: 3000000 },
+      claude_gpt: { h5: 2000000, w7: 12000000 },
+    };
+
+    const POOL_META = {
+      gemini:     { label: 'Gemini Models',       calTitle: 'Gemini Ceilings (tokens)',       weeklyTitle: 'Weekly Limit Remaining',        has5h: true },
+      argon:      { label: 'Gemini 4 Argon',      calTitle: 'Gemini 4 Argon Weekly (tokens)', weeklyTitle: 'Gemini 4 Argon Weekly Limit',   has5h: false },
+      claude_gpt: { label: 'Claude & GPT Models', calTitle: 'Claude+GPT Ceilings (tokens)',   weeklyTitle: 'Weekly Limit Remaining',        has5h: true },
+    };
+
+    let poolLimits = loadPoolLimits();
+    let activePool = 'gemini';
+    let poolManuallySelected = false;
+    let calibrating = false;
+    let latestData = null;
+    let copyResetTimer = null;
+
+    function loadPoolLimits() {
+      const limits = {
+        gemini:     { ...DEFAULT_LIMITS.gemini },
+        argon:      { ...DEFAULT_LIMITS.argon },
+        claude_gpt: { ...DEFAULT_LIMITS.claude_gpt },
+      };
+      try {
+        const raw = localStorage.getItem('ctxMonitorLimits');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          for (const key of ['gemini', 'argon', 'claude_gpt']) {
+            if (parsed && parsed[key]) {
+              if (Number(parsed[key].h5) > 0) limits[key].h5 = Number(parsed[key].h5);
+              if (Number(parsed[key].w7) > 0) limits[key].w7 = Number(parsed[key].w7);
+            }
+          }
+        }
+      } catch {}
+      return limits;
+    }
+
+    function savePoolLimits() {
+      try { localStorage.setItem('ctxMonitorLimits', JSON.stringify(poolLimits)); } catch {}
+    }
+
+    // --- Host Theme Sync ---
+    function parseRgb(str) {
+      if (!str) return null;
+      const m = str.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+      if (m) return [+m[1], +m[2], +m[3]];
+      const hex = str.trim();
+      if (/^#[0-9a-f]{6}$/i.test(hex)) {
+        return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+      }
+      return null;
+    }
+
+    function syncHostTheme() {
+      const root = document.documentElement;
+      const bg = getComputedStyle(root).getPropertyValue('--background').trim();
+      const rgb = parseRgb(bg);
+      if (rgb) {
+        const lum = (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255;
+        root.setAttribute('data-theme', lum < 0.5 ? 'dark' : 'light');
+        root.setAttribute('data-follow-host', 'true');
+      } else {
+        const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        root.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      }
+    }
+
+    syncHostTheme();
+    window.addEventListener('themechange', syncHostTheme);
+    if (window.matchMedia) {
+      try {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncHostTheme);
+      } catch {}
+    }
+    new MutationObserver(syncHostTheme).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['style', 'class']
+    });
+
+    // --- Formatting Helpers ---
+    function fmtTokens(n) {
+      const v = Number(n) || 0;
+      if (v >= 1000000) {
+        const s = (v / 1000000).toFixed(v >= 10000000 ? 1 : 2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+        return s + 'M';
+      }
+      if (v >= 1000) return (v / 1000).toFixed(v >= 100000 ? 0 : 1) + 'k';
+      return String(Math.round(v));
+    }
+
+    function fmtDelta(n) {
+      if (!n) return '±0';
+      return (n > 0 ? '+' : '-') + fmtTokens(Math.abs(n));
+    }
+
+    function fmtRefresh5h(sec, calls) {
+      if (!calls || !sec || sec <= 0) return 'Full quota available';
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      if (h > 0) return `Refreshes in ${h}h ${m}m`;
+      if (m > 0) return `Refreshes in ${m}m`;
+      return 'Refreshes in <1m';
+    }
+
+    function fmtRefresh7d(sec, calls) {
+      if (!calls || !sec || sec <= 0) return 'Full quota available';
+      const d = Math.floor(sec / 86400);
+      const h = Math.floor((sec % 86400) / 3600);
+      if (d > 0) return `Refreshes in ${d}d ${h}h`;
+      if (h > 0) return `Refreshes in ${h}h`;
+      return `Refreshes in ${Math.max(1, Math.floor(sec / 60))}m`;
+    }
+
+    function remainingRingColor(remPct) {
+      if (remPct <= 10) return 'var(--bad)';
+      if (remPct <= 30) return 'var(--warn)';
+      return 'var(--ok)';
+    }
+
+    function poolFromModel(model) {
+      if (typeof model === 'string') {
+        if (/argon/i.test(model)) return 'argon';
+        if (/claude|gpt|openai|\bo1\b|\bo3\b|\bo4\b/i.test(model)) return 'claude_gpt';
+      }
+      return 'gemini';
+    }
+
+    function syncCalibrationInputs() {
+      const lim = poolLimits[activePool] || DEFAULT_LIMITS[activePool];
+      const meta = POOL_META[activePool] || POOL_META.gemini;
+      document.getElementById('cal-drawer-title').textContent = meta.calTitle;
+      const h5Field = document.getElementById('cal-h5-field');
+      const calGrid = document.getElementById('cal-grid');
+      h5Field.style.display = meta.has5h ? '' : 'none';
+      calGrid.style.gridTemplateColumns = meta.has5h ? '1fr 1fr' : '1fr';
+      document.getElementById('inp-h5').value = (lim.h5 / 1e6).toFixed(1);
+      document.getElementById('inp-w7').value = (lim.w7 / 1e6).toFixed(1).replace(/\.0$/, '');
+    }
+
+    function selectPool(pool) {
+      if (!POOL_META[pool]) return;
+      activePool = pool;
+      poolManuallySelected = true;
+      if (calibrating) syncCalibrationInputs();
+      renderUsageWindows(latestData?.usageWindows, latestData?.model);
+    }
+
+    function toggleCalibrate() {
+      calibrating = !calibrating;
+      const drawer = document.getElementById('cal-drawer');
+      const btn = document.getElementById('btn-calibrate');
+      drawer.classList.toggle('show', calibrating);
+      btn.classList.toggle('active', calibrating);
+      btn.setAttribute('aria-expanded', String(calibrating));
+      if (calibrating) syncCalibrationInputs();
+    }
+
+    function saveCalibration() {
+      const meta = POOL_META[activePool] || POOL_META.gemini;
+      const v5 = parseFloat(document.getElementById('inp-h5').value);
+      const v7 = parseFloat(document.getElementById('inp-w7').value);
+      if (meta.has5h && Number.isFinite(v5) && v5 > 0) poolLimits[activePool].h5 = Math.round(v5 * 1e6);
+      if (Number.isFinite(v7) && v7 > 0) poolLimits[activePool].w7 = Math.round(v7 * 1e6);
+      savePoolLimits();
+      calibrating = false;
+      document.getElementById('cal-drawer').classList.remove('show');
+      const btn = document.getElementById('btn-calibrate');
+      btn.classList.remove('active');
+      btn.setAttribute('aria-expanded', 'false');
+      renderUsageWindows(latestData?.usageWindows, latestData?.model);
+    }
+
+    function renderUsageWindows(usageWindows, activeModel) {
+      if (!poolManuallySelected && activeModel) {
+        activePool = poolFromModel(activeModel);
+      }
+
+      const meta = POOL_META[activePool] || POOL_META.gemini;
+      const tabs = [
+        ['gemini', 'tab-gemini'],
+        ['argon', 'tab-argon'],
+        ['claude_gpt', 'tab-claude-gpt'],
+      ];
+      for (const [key, id] of tabs) {
+        const el = document.getElementById(id);
+        const active = activePool === key;
+        el.classList.toggle('active', active);
+        el.setAttribute('aria-selected', String(active));
+      }
+
+      document.getElementById('usage-group-title').textContent = meta.label;
+      document.getElementById('q7-title').textContent = meta.weeklyTitle;
+      const calBtn = document.getElementById('btn-calibrate');
+      calBtn.title = `Calibrate ${meta.label} limits`;
+      calBtn.setAttribute('aria-label', `Calibrate ${meta.label} limits`);
+
+      const w = (usageWindows && usageWindows[activePool]) || {
+        h5Tokens: 0, h5Calls: 0, h5Sub: 0, reset5hSec: 0,
+        w7Tokens: 0, w7Calls: 0, w7Sub: 0, reset7dSec: 0,
+      };
+      const lim = poolLimits[activePool] || DEFAULT_LIMITS[activePool];
+
+      const w7Rem = lim.w7 > 0 ? Math.max(0, Math.min(100, Math.round((1 - w.w7Tokens / lim.w7) * 100))) : 100;
+      const h5Rem = lim.h5 > 0 ? Math.max(0, Math.min(100, Math.round((1 - w.h5Tokens / lim.h5) * 100))) : 100;
+      const w7Color = remainingRingColor(w7Rem);
+      const h5Color = remainingRingColor(h5Rem);
+
+      // Weekly row (Row 1, matching Antigravity Settings)
+      document.getElementById('q7-pct').textContent = `${w7Rem}%`;
+      const q7Ring = document.getElementById('q7-ring');
+      q7Ring.style.strokeDashoffset = String(QUOTA_RING_CIRC * (1 - w7Rem / 100));
+      q7Ring.style.stroke = w7Color;
+      const q7Prog = document.getElementById('q7-progress');
+      q7Prog.setAttribute('aria-label', `${meta.label} weekly limit remaining`);
+      q7Prog.setAttribute('aria-valuenow', String(w7Rem));
+      const q7Desc = w.w7Calls > 0
+        ? `${fmtTokens(w.w7Tokens)} / ${fmtTokens(lim.w7)} · ${fmtRefresh7d(w.reset7dSec, w.w7Calls)}`
+        : fmtRefresh7d(0, 0);
+      const q7DescEl = document.getElementById('q7-desc');
+      q7DescEl.textContent = q7Desc;
+      q7DescEl.title = q7Desc;
+
+      // 5-Hour row (Row 2 — shown for Gemini and Claude+GPT, hidden for Argon Weekly-only pool)
+      const q5Row = document.getElementById('q5-row');
+      q5Row.style.display = meta.has5h ? '' : 'none';
+      if (meta.has5h) {
+        document.getElementById('q5-pct').textContent = `${h5Rem}%`;
+        const q5Ring = document.getElementById('q5-ring');
+        q5Ring.style.strokeDashoffset = String(QUOTA_RING_CIRC * (1 - h5Rem / 100));
+        q5Ring.style.stroke = h5Color;
+        const q5Prog = document.getElementById('q5-progress');
+        q5Prog.setAttribute('aria-label', `${meta.label} five hour limit remaining`);
+        q5Prog.setAttribute('aria-valuenow', String(h5Rem));
+        const q5Desc = w.h5Calls > 0
+          ? `${fmtTokens(w.h5Tokens)} / ${fmtTokens(lim.h5)} · ${fmtRefresh5h(w.reset5hSec, w.h5Calls)}`
+          : fmtRefresh5h(0, 0);
+        const q5DescEl = document.getElementById('q5-desc');
+        q5DescEl.textContent = q5Desc;
+        q5DescEl.title = q5Desc;
+      }
+
+      const q5Sum = document.getElementById('q5-summary');
+      q5Sum.textContent = meta.has5h ? `5h: ${w.h5Calls}c (+${w.h5Sub} sub)` : 'Weekly pool (Pro)';
+      document.getElementById('q7-summary').textContent = `7d: ${w.w7Calls}c (+${w.w7Sub} sub)`;
+    }
+
+    function setWindow(w) {
+      contextWindow = w;
+      try { localStorage.setItem('ctxMonitorWindow', String(w)); } catch {}
+      document.getElementById('win-200').classList.toggle('active', w === 200000);
+      document.getElementById('win-1m').classList.toggle('active', w === 1000000);
+      document.getElementById('ctx-den').textContent = '/ ' + (w === 1000000 ? '1M' : '200k');
+      document.getElementById('radial-progress').setAttribute('aria-valuemax', String(w));
+      if (latestData) render(latestData);
+    }
+
+    function renderEmpty(convId, autoTracked) {
+      document.getElementById('empty-state').classList.add('show');
+      document.getElementById('data-view').classList.add('hidden');
+      const btn = document.getElementById('compact-btn');
+      btn.classList.remove('urgent', 'critical');
+      document.getElementById('footer-session').textContent = convId
+        ? `#${convId.slice(0, 8)}${autoTracked ? ' · auto' : ''}`
+        : 'no active transcript';
+    }
+
+    function render(data) {
+      latestData = data;
+      if (!data || !data.hasData) {
+        renderEmpty(data?.conversationId || null, Boolean(data?.autoTracked));
+        return;
+      }
+
+      document.getElementById('empty-state').classList.remove('show');
+      document.getElementById('data-view').classList.remove('hidden');
+
+      const total = data.currentContextTotal || 0;
+      const cached = data.cacheReadTokens || 0;
+      const fresh = data.uncachedInputTokens || 0;
+      const pct = Math.min(100, (total / contextWindow) * 100);
+      const headroom = Math.max(0, contextWindow - total);
+
+      const isCrit = total >= CRIT_THRESHOLD;
+      const isHeavy = !isCrit && total >= WARN_THRESHOLD;
+      const zoneColor = isCrit ? 'var(--bad)' : (isHeavy ? 'var(--warn)' : 'var(--ok)');
+
+      const banner = document.getElementById('warn-banner');
+      const hero = document.getElementById('hero-section');
+      const btn = document.getElementById('compact-btn');
+      banner.classList.toggle('show', isCrit || isHeavy);
+      banner.classList.toggle('critical', isCrit);
+      hero.classList.toggle('is-critical', isCrit);
+      hero.classList.toggle('is-heavy', isHeavy);
+      btn.classList.toggle('critical', isCrit);
+      btn.classList.toggle('urgent', isHeavy);
+
+      if (isCrit) {
+        document.getElementById('warn-text').innerHTML = '<strong>Context near limit</strong> · Run <code>/compact</code>';
+        document.getElementById('warn-pct').textContent = Math.round(pct) + '%';
+      } else if (isHeavy) {
+        document.getElementById('warn-text').innerHTML = '<strong>Heavy context</strong> · Run <code>/compact</code>';
+        document.getElementById('warn-pct').textContent = Math.round(pct) + '%';
+      }
+
+      // Radial Gauge
+      const offset = RADIAL_CIRC * (1 - pct / 100);
+      const fill = document.getElementById('radial-fill');
+      fill.style.strokeDashoffset = String(offset);
+      fill.style.stroke = zoneColor;
+      document.getElementById('radial-pct').textContent = Math.round(pct) + '%';
+      document.getElementById('radial-progress').setAttribute('aria-valuenow', String(total));
+
+      document.getElementById('ctx-num').textContent = fmtTokens(total);
+
+      const modelEl = document.getElementById('ctx-model');
+      modelEl.textContent = data.model || 'unknown model';
+      modelEl.title = data.model || '';
+      document.getElementById('ctx-headroom').textContent = `${fmtTokens(headroom)} headroom left`;
+
+      // Cache breakdown
+      document.getElementById('cache-breakdown').textContent = `${fmtTokens(cached)} cached · ${fmtTokens(fresh)} fresh`;
+
+      // Session Metrics: Cache Hit, Output, Activity
+      const hitPct = Number(data.cacheHitPercent) || 0;
+      document.getElementById('cache-val').textContent = hitPct.toFixed(1) + '%';
+      document.getElementById('cache-saved').textContent = `${fmtTokens(cached)} reused`;
+
+      const cumOut = data.cumulativeOutput || 0;
+      const lastOut = data.lastOutputTokens || 0;
+      document.getElementById('out-val').textContent = fmtTokens(cumOut);
+      document.getElementById('out-sub').textContent = `Last +${fmtTokens(lastOut)}`;
+
+      const turns = data.userTurns || 0;
+      const calls = data.modelCalls || 0;
+      const steps = Array.isArray(data.steps) ? data.steps : [];
+      let delta = 0;
+      if (steps.length >= 2) {
+        delta = (steps[steps.length - 1].totalCtx || 0) - (steps[steps.length - 2].totalCtx || 0);
+      } else if (steps.length === 1) {
+        delta = steps[0].totalCtx || 0;
+      }
+      document.getElementById('act-val').textContent = `${turns}t · ${calls}c`;
+      document.getElementById('act-sub').textContent = `${fmtDelta(delta)} / step`;
+
+      // Usage Limits (Antigravity Settings Style)
+      renderUsageWindows(data.usageWindows, data.model);
+
+      // Footer session
+      document.getElementById('footer-session').textContent = data.conversationId
+        ? `#${data.conversationId.slice(0, 8)}${data.autoTracked ? ' · auto' : ''}`
+        : 'active session';
+
+      updateTtl();
+    }
+
+    function updateTtl() {
+      if (!latestData || !latestData.hasData || !latestData.lastCallAt) return;
+      const elapsedSec = Math.max(0, Math.floor((Date.now() - new Date(latestData.lastCallAt).getTime()) / 1000));
+      const remaining = Math.max(0, CACHE_TTL_SEC - elapsedSec);
+      const m = Math.floor(remaining / 60);
+      const s = String(remaining % 60).padStart(2, '0');
+
+      const strip = document.getElementById('cache-strip');
+      const titleEl = document.getElementById('cache-strip-title');
+      const ttlVal = document.getElementById('ttl-val');
+      const ttlBar = document.getElementById('ttl-bar');
+      const ttlState = document.getElementById('ttl-state');
+      const cacheSub = document.getElementById('cache-sub');
+      const hitPct = Number(latestData.cacheHitPercent) || 0;
+
+      if (remaining <= 0) {
+        strip.classList.add('is-cold');
+        titleEl.textContent = 'Cache Frozen';
+        ttlVal.textContent = 'COLD';
+        ttlState.textContent = 'expired · next call rebuilds';
+        cacheSub.textContent = 'Cold — will rebuild';
+      } else {
+        strip.classList.remove('is-cold');
+        titleEl.textContent = 'Prompt Cache';
+        ttlVal.textContent = `${m}:${s}`;
+        const barPct = (remaining / CACHE_TTL_SEC) * 100;
+        ttlBar.style.width = barPct + '%';
+        if (remaining < 60) {
+          ttlBar.style.background = 'var(--warn)';
+          ttlState.textContent = 'cooling down';
+        } else {
+          ttlBar.style.background = 'var(--ok)';
+          ttlState.textContent = 'warm';
+        }
+        cacheSub.textContent = hitPct >= 75 ? 'Optimal reuse' : (hitPct >= 30 ? 'Warming up' : 'Building cache');
+      }
+    }
+
+    async function fetchMetrics() {
+      const qs = new URLSearchParams(window.location.search);
+      const convId = qs.get('conversationId') || '';
+      const token = qs.get('token') || '';
+      const url = `/api/metrics?conversationId=${encodeURIComponent(convId)}${token ? '&token=' + encodeURIComponent(token) : ''}`;
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          render(data);
+        }
+      } catch {}
+    }
+
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      ta.style.pointerEvents = 'none';
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch {}
+      document.body.removeChild(ta);
+      return ok;
+    }
+
+    async function copyCompact() {
+      const label = document.getElementById('compact-label');
+      let copied = false;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText('/compact');
+          copied = true;
+        } catch {
+          copied = fallbackCopy('/compact');
+        }
+      } else {
+        copied = fallbackCopy('/compact');
+      }
+
+      if (copyResetTimer) clearTimeout(copyResetTimer);
+      label.textContent = copied ? 'Copied ✓' : '/compact';
+      copyResetTimer = setTimeout(() => {
+        label.textContent = '/compact';
+        copyResetTimer = null;
+      }, 1500);
+    }
+
+    ['inp-h5', 'inp-w7'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('keydown', e => {
+          if (e.key === 'Enter') saveCalibration();
+          else if (e.key === 'Escape' && calibrating) toggleCalibrate();
+        });
+      }
+    });
+
+    setWindow(contextWindow);
+    fetchMetrics();
+    setInterval(fetchMetrics, 2000);
+    setInterval(updateTtl, 1000);
+  </script>
+</body>
+</html>
