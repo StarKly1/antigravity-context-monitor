@@ -2,6 +2,10 @@
 
 A lightweight, zero-dependency Antigravity plugin that adds a native-styled live side-pane HUD for tracking **context window usage**, **prompt cache warmth**, and **rolling 5-hour & weekly quota pools** across all local conversations and subagents.
 
+<p align="center">
+  <img src="assets/preview.png" alt="Context Monitor — Dark & Light Theme Preview" width="760" />
+</p>
+
 ## Features
 
 - **Live Context Window Gauge:** Real-time token count, headroom remaining, `200k` / `1M` switcher, and ambient visual states when context grows heavy (`>= 120k`) or critical (`>= 160k`).
