@@ -10,11 +10,11 @@ A lightweight, zero-dependency Antigravity plugin that adds a native-styled live
 
 - **Live Context Window Gauge:** Real-time token count, headroom remaining, `200k` / `1M` switcher, and ambient visual states when context grows heavy (`>= 120k`) or critical (`>= 160k`).
 - **Prompt Cache Warmth:** Live 5-minute TTL countdown bar with cached vs. fresh token breakdown and a frozen cold-cache indicator once expired.
-- **Usage Limits (Antigravity Settings Style):** Tracks rolling **Weekly** and **5-Hour** remaining quota rings across Antigravity's three independent pools:
+- **Usage Limits (Antigravity Settings Style):** Tracks fixed-epoch **Weekly** and **5-Hour** remaining quota rings across Antigravity's three independent pools:
   - **Gemini Models** (Weekly + 5-Hour)
   - **Gemini 4 Argon** (Weekly)
   - **Claude & GPT Models** (Weekly + 5-Hour)
-- **Per-Pool Calibration:** Click **Calibrate** to adjust each pool's token ceilings to match your Antigravity plan tier (Free, Pro, or Ultra). Settings persist locally in `localStorage`.
+- **Sync from Settings Calibration:** Click **Calibrate** (or **Sync %**) to enter your actual remaining percentages (and optional reset countdowns) directly from Antigravity Settings — automatically solving each pool's ceiling and pinning your reset clock locally in `localStorage`. Manual token-ceiling entry is also available.
 - **One-Click `/compact`:** Quick copy button in the footer that highlights when context crosses the warning threshold.
 - **High-Context Chat Hook & Skill:** Alerts when context crosses `120k` tokens and includes the `context-usage` skill for on-demand token breakdowns.
 - **Privacy-First & Cross-Platform:** 100% local Node.js (Windows, macOS, Linux), zero npm dependencies, zero external CDNs or telemetry, binds strictly to `127.0.0.1`, and reads only your local Antigravity `transcript.jsonl` files.
@@ -57,13 +57,15 @@ After installing, enable **context-monitor** in **Customizations → Installed**
 
 ---
 
-## Calibrating Quota Ceilings
+## Calibrating Quota Limits
 
-Because Antigravity does not expose server-side quota ceilings to local plugins, the Usage Limits rings estimate remaining quota from your local transcripts over the past 5 hours and 7 days:
+Because Antigravity does not expose server-side quota ceilings or reset clocks to local plugins, the Usage Limits rings estimate remaining quota from your local transcripts. On first install, if your existing local usage exceeds the rough starter defaults, the HUD shows `—` with a **Sync %** button instead of a false `0%`:
 
-1. Open Antigravity **Settings** to check your actual remaining percentages.
-2. In **Context Monitor**, select a pool tab (`Gemini`, `Argon`, or `Claude+GPT`) and click **Calibrate**.
-3. Adjust the ceiling(s) in millions of tokens and click **Save**.
+1. Open Antigravity **Settings** to check your actual remaining percentages (and optionally the `"Refreshes in"` timers).
+2. In **Context Monitor**, select a pool tab (`Gemini`, `Argon`, or `Claude+GPT`) and click **Sync %** / **Calibrate**.
+3. Enter your **Weekly left (%)** and **5-Hour left (%)** (plus optional **Resets in**, e.g. `5d 12h` or `2h 30m`) and click **Save**.
+   - Context Monitor automatically pins your cycle reset clock, recounts tokens inside the active cycle, and solves your plan tier's token ceiling (or sets a cycle-scoped baseline if prior usage happened on another machine).
+   - Switch to the **Manual** tab in the drawer at any time to edit raw ceilings in millions of tokens directly.
 
 ---
 

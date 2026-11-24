@@ -74,9 +74,9 @@ const WINDOWS_CACHE_TTL_MS = 15000;
 
 /** @type {Map<string, { mtimeMs: number, records: Array<{ tsMs: number, modelFamily: string, uncachedInput: number, cacheRead: number, output: number, isSubagent: boolean }> }>} */
 const transcriptCache = new Map();
-let usageWindowsCache = { computedAtMs: 0, data: null };
+let usageWindowsCache = { computedAtMs: 0, anchorsKey: '', data: null };
 
-function classifyModelFamily(model) {
+export function classifyModelFamily(model) {
   if (typeof model !== 'string' || !model) return 'other';
   if (/argon/i.test(model)) return 'argon';
   if (/gemini/i.test(model)) return 'gemini';
@@ -117,47 +117,79 @@ function parseTranscriptRecords(filePath) {
   return records;
 }
 
-function aggregatePoolFixedCycles(records, now) {
-  if (records.length === 0) {
-    return {
-      h5Tokens: 0, h5TotalWithCache: 0, h5Calls: 0, h5Sub: 0, reset5hSec: 0,
-      w7Tokens: 0, w7TotalWithCache: 0, w7Calls: 0, w7Sub: 0, reset7dSec: 0,
-    };
+export function parseAnchorsParam(raw) {
+  if (typeof raw !== 'string' || !raw.trim() || raw.length > 2048) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return {};
+    const out = {};
+    for (const key of ['gemini', 'argon', 'claude_gpt']) {
+      const entry = parsed[key];
+      if (!entry || typeof entry !== 'object') continue;
+      const h5ResetAt = Number(entry.h5ResetAt);
+      const w7ResetAt = Number(entry.w7ResetAt);
+      const clean = {};
+      if (Number.isFinite(h5ResetAt) && h5ResetAt > 0) clean.h5ResetAt = h5ResetAt;
+      if (Number.isFinite(w7ResetAt) && w7ResetAt > 0) clean.w7ResetAt = w7ResetAt;
+      if (clean.h5ResetAt || clean.w7ResetAt) out[key] = clean;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function resolveWindowCycle(sortedRecords, now, windowMs, pinnedResetAt) {
+  if (Number.isFinite(pinnedResetAt) && pinnedResetAt > 0) {
+    if (now < pinnedResetAt) {
+      const cycleEnd = Math.min(pinnedResetAt, now + windowMs);
+      return { cycleStart: cycleEnd - windowMs, cycleEnd, active: true, pinned: true };
+    }
+    // Pinned cycle has expired; start next fixed-epoch cycle from first call at/after pinnedResetAt
+    let cycleStart = 0;
+    for (const rec of sortedRecords) {
+      if (rec.tsMs < pinnedResetAt) continue;
+      if (!cycleStart || rec.tsMs >= cycleStart + windowMs) {
+        cycleStart = rec.tsMs;
+      }
+    }
+    const cycleEnd = cycleStart ? cycleStart + windowMs : 0;
+    return { cycleStart, cycleEnd, active: cycleStart > 0 && now < cycleEnd, pinned: false };
   }
 
-  records.sort((a, b) => a.tsMs - b.tsMs);
-
-  // Reconstruct Antigravity's fixed-epoch cycles (a cycle starts on the first
-  // call when no cycle is active, lasts windowMs, then resets completely).
-  let h5CycleStart = 0;
-  let w7CycleStart = 0;
-  for (const rec of records) {
-    if (!h5CycleStart || rec.tsMs >= h5CycleStart + FIVE_HOURS_MS) {
-      h5CycleStart = rec.tsMs;
-    }
-    if (!w7CycleStart || rec.tsMs >= w7CycleStart + SEVEN_DAYS_MS) {
-      w7CycleStart = rec.tsMs;
+  // Reconstruct Antigravity's fixed-epoch cycle (starts on the first call
+  // when no cycle is active, lasts windowMs, then resets completely).
+  let cycleStart = 0;
+  for (const rec of sortedRecords) {
+    if (!cycleStart || rec.tsMs >= cycleStart + windowMs) {
+      cycleStart = rec.tsMs;
     }
   }
+  const cycleEnd = cycleStart ? cycleStart + windowMs : 0;
+  return { cycleStart, cycleEnd, active: cycleStart > 0 && now < cycleEnd, pinned: false };
+}
 
-  const h5Active = h5CycleStart > 0 && now < h5CycleStart + FIVE_HOURS_MS;
-  const w7Active = w7CycleStart > 0 && now < w7CycleStart + SEVEN_DAYS_MS;
+export function aggregatePoolFixedCycles(records, now, anchor = null) {
+  const sorted = records.length > 1 ? [...records].sort((a, b) => a.tsMs - b.tsMs) : [...records];
+
+  const h5 = resolveWindowCycle(sorted, now, FIVE_HOURS_MS, anchor?.h5ResetAt);
+  const w7 = resolveWindowCycle(sorted, now, SEVEN_DAYS_MS, anchor?.w7ResetAt);
 
   let h5Tokens = 0, h5TotalWithCache = 0, h5Calls = 0, h5Sub = 0;
   let w7Tokens = 0, w7TotalWithCache = 0, w7Calls = 0, w7Sub = 0;
 
-  for (const rec of records) {
+  for (const rec of sorted) {
     const billed = rec.uncachedInput + rec.output;
     const totalWithCache = billed + rec.cacheRead;
 
-    if (w7Active && rec.tsMs >= w7CycleStart) {
+    if (w7.active && rec.tsMs >= w7.cycleStart && rec.tsMs < w7.cycleEnd) {
       w7Tokens += billed;
       w7TotalWithCache += totalWithCache;
       w7Calls += 1;
       if (rec.isSubagent) w7Sub += 1;
     }
 
-    if (h5Active && rec.tsMs >= h5CycleStart) {
+    if (h5.active && rec.tsMs >= h5.cycleStart && rec.tsMs < h5.cycleEnd) {
       h5Tokens += billed;
       h5TotalWithCache += totalWithCache;
       h5Calls += 1;
@@ -170,18 +202,27 @@ function aggregatePoolFixedCycles(records, now) {
     h5TotalWithCache,
     h5Calls,
     h5Sub,
-    reset5hSec: h5Active ? Math.max(0, Math.floor((h5CycleStart + FIVE_HOURS_MS - now) / 1000)) : 0,
+    reset5hSec: h5.active ? Math.max(0, Math.floor((h5.cycleEnd - now) / 1000)) : 0,
+    h5CycleEnd: h5.active ? h5.cycleEnd : 0,
+    h5Pinned: h5.pinned,
     w7Tokens,
     w7TotalWithCache,
     w7Calls,
     w7Sub,
-    reset7dSec: w7Active ? Math.max(0, Math.floor((w7CycleStart + SEVEN_DAYS_MS - now) / 1000)) : 0,
+    reset7dSec: w7.active ? Math.max(0, Math.floor((w7.cycleEnd - now) / 1000)) : 0,
+    w7CycleEnd: w7.active ? w7.cycleEnd : 0,
+    w7Pinned: w7.pinned,
   };
 }
 
-function computeUsageWindows() {
+function computeUsageWindows(anchors = {}) {
   const now = Date.now();
-  if (usageWindowsCache.data && now - usageWindowsCache.computedAtMs < WINDOWS_CACHE_TTL_MS) {
+  const anchorsKey = JSON.stringify(anchors || {});
+  if (
+    usageWindowsCache.data &&
+    usageWindowsCache.anchorsKey === anchorsKey &&
+    now - usageWindowsCache.computedAtMs < WINDOWS_CACHE_TTL_MS
+  ) {
     return usageWindowsCache.data;
   }
 
@@ -232,12 +273,12 @@ function computeUsageWindows() {
 
   const result = {
     updatedAt: new Date(now).toISOString(),
-    gemini: aggregatePoolFixedCycles(poolRecords.gemini, now),
-    argon: aggregatePoolFixedCycles(poolRecords.argon, now),
-    claude_gpt: aggregatePoolFixedCycles(poolRecords.claude_gpt, now),
+    gemini: aggregatePoolFixedCycles(poolRecords.gemini, now, anchors.gemini),
+    argon: aggregatePoolFixedCycles(poolRecords.argon, now, anchors.argon),
+    claude_gpt: aggregatePoolFixedCycles(poolRecords.claude_gpt, now, anchors.claude_gpt),
   };
 
-  usageWindowsCache = { computedAtMs: now, data: result };
+  usageWindowsCache = { computedAtMs: now, anchorsKey, data: result };
   return result;
 }
 
@@ -411,8 +452,9 @@ const server = http.createServer((req, res) => {
 
   if (pathname === '/api/metrics') {
     const convId = parsed.searchParams.get('conversationId')?.trim() || '';
+    const anchors = parseAnchorsParam(parsed.searchParams.get('anchors') || '');
     const metrics = parseMetrics(convId);
-    metrics.usageWindows = computeUsageWindows();
+    metrics.usageWindows = computeUsageWindows(anchors);
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' });
     res.end(JSON.stringify(metrics));
     return;
@@ -428,14 +470,17 @@ const server = http.createServer((req, res) => {
   res.end('Not Found');
 });
 
-server.listen(PORT, HOST, () => {
-  console.log(`[context-monitor-hud] listening on http://${HOST}:${PORT}`);
-});
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === __filename;
+if (isMain) {
+  server.listen(PORT, HOST, () => {
+    console.log(`[context-monitor-hud] listening on http://${HOST}:${PORT}`);
+  });
 
-function shutdown() {
-  server.close(() => process.exit(0));
-  setTimeout(() => process.exit(0), 1000).unref();
+  function shutdown() {
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 1000).unref();
+  }
+
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
 }
-
-process.once('SIGINT', shutdown);
-process.once('SIGTERM', shutdown);

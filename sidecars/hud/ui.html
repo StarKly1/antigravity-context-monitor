@@ -761,6 +761,18 @@
       border-color: var(--edge-strong);
     }
 
+    .cal-btn.needs-sync {
+      border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .cal-btn.needs-sync:hover {
+      background: color-mix(in srgb, var(--accent) 18%, transparent);
+      color: var(--accent);
+    }
+
     .pool-tabs {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -807,10 +819,70 @@
 
     .cal-drawer.show { display: flex; }
 
+    .cal-drawer-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
     .cal-drawer-title {
       font-weight: 600;
       color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+
+    .cal-mode-seg {
+      display: inline-flex;
+      padding: 2px;
+      border-radius: 7px;
+      background: var(--canvas);
+      border: 1px solid var(--edge);
+      flex-shrink: 0;
+    }
+
+    .cal-mode-btn {
+      border: none;
+      background: transparent;
+      color: var(--ink-soft);
+      font-family: var(--font);
+      font-size: 10.5px;
+      font-weight: 500;
+      padding: 2px 7px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.14s ease, color 0.14s ease;
+    }
+
+    .cal-mode-btn:hover { color: var(--ink); }
+
+    .cal-mode-btn.active {
+      background: var(--control);
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .cal-mode-btn:focus-visible,
+    .cal-reset:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .cal-hint {
+      font-size: 11px;
+      color: var(--ink-soft);
+      line-height: 1.35;
+    }
+
+    .cal-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .cal-section.hidden { display: none; }
 
     .cal-grid {
       display: grid;
@@ -842,10 +914,41 @@
       font-size: 11.5px;
     }
 
+    .cal-input::placeholder {
+      color: var(--ink-faint);
+      font-family: var(--font);
+      font-size: 10.5px;
+    }
+
+    .cal-preview {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      color: var(--ink-faint);
+      line-height: 1.35;
+    }
+
     .cal-actions {
       display: flex;
-      justify-content: flex-end;
+      align-items: center;
+      justify-content: space-between;
       gap: 6px;
+    }
+
+    .cal-reset {
+      border: 1px solid var(--edge);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--ink-soft);
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 9px;
+      cursor: pointer;
+    }
+
+    .cal-reset:hover {
+      background: var(--hover);
+      color: var(--ink);
     }
 
     .cal-save {
@@ -861,6 +964,10 @@
     }
 
     .cal-save:hover { opacity: 0.92; }
+
+    .quota-pct.muted {
+      color: var(--ink-faint);
+    }
 
     /* Antigravity Settings Quota Rows (Title + Subline on Left, % + Circular Ring on Right) */
     .quota-row {
@@ -1201,7 +1308,7 @@
           </div>
         </section>
 
-        <!-- Group 2: Antigravity Settings-Style Usage Limits (2 Tabs: Gemini & Claude+GPT) -->
+        <!-- Group 2: Antigravity Settings-Style Usage Limits (3 Tabs: Gemini, Argon, Claude+GPT) -->
         <section class="ag-group" aria-label="Model usage limits">
           <div class="ag-group-head">
             <span id="usage-group-title" class="ag-group-title">Gemini Models</span>
@@ -1209,7 +1316,7 @@
               <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="M11.5 2.5l2 2-7.5 7.5H4v-2l7.5-7.5z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>
               </svg>
-              <span>Calibrate</span>
+              <span id="btn-calibrate-label">Calibrate</span>
             </button>
           </div>
 
@@ -1219,20 +1326,58 @@
             <button id="tab-claude-gpt" type="button" role="tab" aria-selected="false" class="pool-tab" onclick="selectPool('claude_gpt')">Claude+GPT</button>
           </div>
 
-          <div id="cal-drawer" class="cal-drawer" aria-label="Calibrate pool ceilings">
-            <div id="cal-drawer-title" class="cal-drawer-title">Gemini Ceilings (tokens)</div>
-            <div id="cal-grid" class="cal-grid">
-              <label id="cal-h5-field" class="cal-field">
-                <span>5-Hour (M)</span>
-                <input id="inp-h5" class="cal-input tabular" type="number" step="0.5" min="0.5" value="3.0" />
-              </label>
-              <label class="cal-field">
-                <span>Weekly (M)</span>
-                <input id="inp-w7" class="cal-input tabular" type="number" step="0.5" min="0.5" value="10" />
-              </label>
+          <div id="cal-drawer" class="cal-drawer" aria-label="Calibrate pool limits">
+            <div class="cal-drawer-head">
+              <div id="cal-drawer-title" class="cal-drawer-title">Sync Gemini Limits</div>
+              <div class="cal-mode-seg" role="group" aria-label="Calibration mode">
+                <button id="cal-mode-sync" type="button" class="cal-mode-btn active" onclick="setCalMode('sync')">Sync %</button>
+                <button id="cal-mode-manual" type="button" class="cal-mode-btn" onclick="setCalMode('manual')">Manual</button>
+              </div>
             </div>
+
+            <!-- Mode 1: Sync directly from Antigravity Settings (%) -->
+            <div id="cal-sync-section" class="cal-section">
+              <div class="cal-hint">Enter remaining % from Antigravity Settings (reset time optional).</div>
+              <div class="cal-grid">
+                <label class="cal-field">
+                  <span>Weekly left (%)</span>
+                  <input id="inp-pct-w7" class="cal-input tabular" type="number" min="0" max="100" step="1" placeholder="e.g. 88" oninput="updateSyncPreview()" />
+                </label>
+                <label class="cal-field">
+                  <span>Resets in</span>
+                  <input id="inp-rst-w7" class="cal-input tabular" type="text" placeholder="e.g. 5d 12h" oninput="updateSyncPreview()" />
+                </label>
+              </div>
+              <div id="cal-sync-h5-row" class="cal-grid">
+                <label class="cal-field">
+                  <span>5-Hour left (%)</span>
+                  <input id="inp-pct-h5" class="cal-input tabular" type="number" min="0" max="100" step="1" placeholder="e.g. 52" oninput="updateSyncPreview()" />
+                </label>
+                <label class="cal-field">
+                  <span>Resets in</span>
+                  <input id="inp-rst-h5" class="cal-input tabular" type="text" placeholder="e.g. 2h 30m" oninput="updateSyncPreview()" />
+                </label>
+              </div>
+              <div id="cal-preview" class="cal-preview tabular"></div>
+            </div>
+
+            <!-- Mode 2: Manual Ceilings (Millions of Tokens) -->
+            <div id="cal-manual-section" class="cal-section hidden">
+              <div id="cal-grid" class="cal-grid">
+                <label id="cal-h5-field" class="cal-field">
+                  <span>5-Hour (M)</span>
+                  <input id="inp-h5" class="cal-input tabular" type="number" step="0.5" min="0.5" value="3.0" />
+                </label>
+                <label class="cal-field">
+                  <span>Weekly (M)</span>
+                  <input id="inp-w7" class="cal-input tabular" type="number" step="0.5" min="0.5" value="10" />
+                </label>
+              </div>
+            </div>
+
             <div class="cal-actions">
-              <button type="button" class="cal-save" onclick="saveCalibration()">Save</button>
+              <button type="button" class="cal-reset" title="Reset pool calibration to defaults" onclick="resetCalibration()">Reset</button>
+              <button id="cal-save-btn" type="button" class="cal-save" onclick="saveCalibration()">Save</button>
             </div>
           </div>
 
@@ -1290,6 +1435,8 @@
 
   <script>
     const CACHE_TTL_SEC = 300;
+    const FIVE_HOURS_MS = 5 * 3600 * 1000;
+    const SEVEN_DAYS_MS = 7 * 86400 * 1000;
     const WARN_THRESHOLD = 120000;
     const CRIT_THRESHOLD = 160000;
     const RADIAL_CIRC = 2 * Math.PI * 27;
@@ -1307,32 +1454,55 @@
     };
 
     const POOL_META = {
-      gemini:     { label: 'Gemini Models',       calTitle: 'Gemini Ceilings (tokens)',       weeklyTitle: 'Weekly Limit Remaining',        has5h: true },
-      argon:      { label: 'Gemini 4 Argon',      calTitle: 'Gemini 4 Argon Weekly (tokens)', weeklyTitle: 'Gemini 4 Argon Weekly Limit',   has5h: false },
-      claude_gpt: { label: 'Claude & GPT Models', calTitle: 'Claude+GPT Ceilings (tokens)',   weeklyTitle: 'Weekly Limit Remaining',        has5h: true },
+      gemini:     { label: 'Gemini Models',       syncTitle: 'Sync Gemini Limits',       calTitle: 'Gemini Ceilings (tokens)',       weeklyTitle: 'Weekly Limit Remaining',        has5h: true },
+      argon:      { label: 'Gemini 4 Argon',      syncTitle: 'Sync Argon Weekly',        calTitle: 'Gemini 4 Argon Weekly (tokens)', weeklyTitle: 'Gemini 4 Argon Weekly Limit',   has5h: false },
+      claude_gpt: { label: 'Claude & GPT Models', syncTitle: 'Sync Claude+GPT Limits',   calTitle: 'Claude+GPT Ceilings (tokens)',   weeklyTitle: 'Weekly Limit Remaining',        has5h: true },
     };
+
+    function createDefaultPoolState(key) {
+      return {
+        h5: DEFAULT_LIMITS[key].h5,
+        w7: DEFAULT_LIMITS[key].w7,
+        calibrated: false,
+        h5ResetAt: 0,
+        w7ResetAt: 0,
+        h5Offset: 0,
+        h5OffsetEnd: 0,
+        w7Offset: 0,
+        w7OffsetEnd: 0,
+      };
+    }
 
     let poolLimits = loadPoolLimits();
     let activePool = 'gemini';
     let poolManuallySelected = false;
     let calibrating = false;
+    let calMode = 'sync';
     let latestData = null;
     let copyResetTimer = null;
 
     function loadPoolLimits() {
       const limits = {
-        gemini:     { ...DEFAULT_LIMITS.gemini },
-        argon:      { ...DEFAULT_LIMITS.argon },
-        claude_gpt: { ...DEFAULT_LIMITS.claude_gpt },
+        gemini:     createDefaultPoolState('gemini'),
+        argon:      createDefaultPoolState('argon'),
+        claude_gpt: createDefaultPoolState('claude_gpt'),
       };
       try {
         const raw = localStorage.getItem('ctxMonitorLimits');
         if (raw) {
           const parsed = JSON.parse(raw);
           for (const key of ['gemini', 'argon', 'claude_gpt']) {
-            if (parsed && parsed[key]) {
-              if (Number(parsed[key].h5) > 0) limits[key].h5 = Number(parsed[key].h5);
-              if (Number(parsed[key].w7) > 0) limits[key].w7 = Number(parsed[key].w7);
+            const p = parsed && parsed[key];
+            if (p && typeof p === 'object') {
+              if (Number(p.h5) > 0) limits[key].h5 = Number(p.h5);
+              if (Number(p.w7) > 0) limits[key].w7 = Number(p.w7);
+              limits[key].calibrated = p.calibrated === undefined ? true : Boolean(p.calibrated);
+              if (Number.isFinite(Number(p.h5ResetAt)) && Number(p.h5ResetAt) > 0) limits[key].h5ResetAt = Number(p.h5ResetAt);
+              if (Number.isFinite(Number(p.w7ResetAt)) && Number(p.w7ResetAt) > 0) limits[key].w7ResetAt = Number(p.w7ResetAt);
+              if (Number.isFinite(Number(p.h5Offset)) && Number(p.h5Offset) >= 0) limits[key].h5Offset = Number(p.h5Offset);
+              if (Number.isFinite(Number(p.h5OffsetEnd)) && Number(p.h5OffsetEnd) > 0) limits[key].h5OffsetEnd = Number(p.h5OffsetEnd);
+              if (Number.isFinite(Number(p.w7Offset)) && Number(p.w7Offset) >= 0) limits[key].w7Offset = Number(p.w7Offset);
+              if (Number.isFinite(Number(p.w7OffsetEnd)) && Number(p.w7OffsetEnd) > 0) limits[key].w7OffsetEnd = Number(p.w7OffsetEnd);
             }
           }
         }
@@ -1342,6 +1512,89 @@
 
     function savePoolLimits() {
       try { localStorage.setItem('ctxMonitorLimits', JSON.stringify(poolLimits)); } catch {}
+    }
+
+    function buildAnchorsQuery() {
+      const now = Date.now();
+      const pruneBefore = now - 2 * SEVEN_DAYS_MS;
+      const anchors = {};
+      for (const key of ['gemini', 'argon', 'claude_gpt']) {
+        const lim = poolLimits[key];
+        if (!lim) continue;
+        const entry = {};
+        if (lim.h5ResetAt > pruneBefore) entry.h5ResetAt = lim.h5ResetAt;
+        if (lim.w7ResetAt > pruneBefore) entry.w7ResetAt = lim.w7ResetAt;
+        if (entry.h5ResetAt || entry.w7ResetAt) anchors[key] = entry;
+      }
+      return Object.keys(anchors).length > 0 ? JSON.stringify(anchors) : '';
+    }
+
+    function parseDurationMs(str, maxMs) {
+      if (typeof str !== 'string') return null;
+      const trimmed = str.trim().toLowerCase();
+      if (!trimmed) return null;
+
+      // Support H:MM shorthand (e.g. "2:30")
+      const colonMatch = trimmed.match(/^(\d{1,3}):(\d{1,2})$/);
+      if (colonMatch) {
+        const ms = (parseInt(colonMatch[1], 10) * 3600 + parseInt(colonMatch[2], 10) * 60) * 1000;
+        if (ms > 0) return Math.min(maxMs, Math.max(60000, ms));
+        return null;
+      }
+
+      // Support natural durations like "5d 12h", "2h 30m", "45m", "1d 4h 20m"
+      const tokenRegex = /(\d+(?:\.\d+)?)\s*(d|day|days|h|hr|hrs|hour|hours|m|min|mins|minute|minutes|s|sec|secs)\b/g;
+      let totalMs = 0;
+      let matched = false;
+      let m;
+      while ((m = tokenRegex.exec(trimmed)) !== null) {
+        matched = true;
+        const val = parseFloat(m[1]);
+        const unit = m[2][0];
+        if (unit === 'd') totalMs += val * 86400000;
+        else if (unit === 'h') totalMs += val * 3600000;
+        else if (unit === 'm') totalMs += val * 60000;
+        else if (unit === 's') totalMs += val * 1000;
+      }
+      if (!matched || totalMs <= 0) return null;
+      return Math.min(maxMs, Math.max(60000, Math.round(totalMs)));
+    }
+
+    function computeEffectiveUsage(w, lim, now) {
+      const h5Offset = (lim.h5Offset > 0 && lim.h5OffsetEnd > now) ? lim.h5Offset : 0;
+      const w7Offset = (lim.w7Offset > 0 && lim.w7OffsetEnd > now) ? lim.w7Offset : 0;
+      const effH5Tokens = (w.h5Tokens || 0) + h5Offset;
+      const effW7Tokens = (w.w7Tokens || 0) + w7Offset;
+      const effH5ResetSec = w.reset5hSec > 0
+        ? w.reset5hSec
+        : (h5Offset > 0 ? Math.max(0, Math.floor((lim.h5OffsetEnd - now) / 1000)) : 0);
+      const effW7ResetSec = w.reset7dSec > 0
+        ? w.reset7dSec
+        : (w7Offset > 0 ? Math.max(0, Math.floor((lim.w7OffsetEnd - now) / 1000)) : 0);
+      return {
+        effH5Tokens,
+        effW7Tokens,
+        effH5ResetSec,
+        effW7ResetSec,
+        hasH5Activity: (w.h5Calls || 0) > 0 || Boolean(w.h5Pinned) || h5Offset > 0,
+        hasW7Activity: (w.w7Calls || 0) > 0 || Boolean(w.w7Pinned) || w7Offset > 0,
+      };
+    }
+
+    function solveWindowCalibration(remPct, localTokens, currentLim, cycleEnd, windowMs, now) {
+      const clamped = Math.max(0, Math.min(100, remPct));
+      if (clamped >= 100) {
+        return { ceiling: currentLim, offset: 0, offsetEnd: 0, needsResetAt: 0 };
+      }
+      if (localTokens > 0) {
+        const usedFrac = Math.max(0.01, (100 - clamped) / 100);
+        const ceiling = Math.max(100000, Math.round(localTokens / usedFrac));
+        return { ceiling, offset: 0, offsetEnd: 0, needsResetAt: 0 };
+      }
+      const usedFrac = (100 - clamped) / 100;
+      const offset = Math.round(currentLim * usedFrac);
+      const end = cycleEnd > now ? cycleEnd : (now + windowMs);
+      return { ceiling: currentLim, offset, offsetEnd: end, needsResetAt: cycleEnd > now ? 0 : end };
     }
 
     // --- Host Theme Sync ---
@@ -1398,8 +1651,8 @@
       return (n > 0 ? '+' : '-') + fmtTokens(Math.abs(n));
     }
 
-    function fmtRefresh5h(sec, calls) {
-      if (!calls || !sec || sec <= 0) return 'Full quota available';
+    function fmtRefresh5h(sec, active) {
+      if (!active || !sec || sec <= 0) return 'Full quota available';
       const h = Math.floor(sec / 3600);
       const m = Math.floor((sec % 3600) / 60);
       if (h > 0) return `Refreshes in ${h}h ${m}m`;
@@ -1407,8 +1660,8 @@
       return 'Refreshes in <1m';
     }
 
-    function fmtRefresh7d(sec, calls) {
-      if (!calls || !sec || sec <= 0) return 'Full quota available';
+    function fmtRefresh7d(sec, active) {
+      if (!active || !sec || sec <= 0) return 'Full quota available';
       const d = Math.floor(sec / 86400);
       const h = Math.floor((sec % 86400) / 3600);
       if (d > 0) return `Refreshes in ${d}d ${h}h`;
@@ -1430,10 +1683,73 @@
       return 'gemini';
     }
 
-    function syncCalibrationInputs() {
-      const lim = poolLimits[activePool] || DEFAULT_LIMITS[activePool];
+    function setCalMode(mode) {
+      calMode = mode === 'manual' ? 'manual' : 'sync';
+      document.getElementById('cal-mode-sync').classList.toggle('active', calMode === 'sync');
+      document.getElementById('cal-mode-manual').classList.toggle('active', calMode === 'manual');
+      document.getElementById('cal-sync-section').classList.toggle('hidden', calMode !== 'sync');
+      document.getElementById('cal-manual-section').classList.toggle('hidden', calMode !== 'manual');
+      syncCalibrationInputs();
+    }
+
+    function updateSyncPreview() {
+      const previewEl = document.getElementById('cal-preview');
+      if (!previewEl) return;
       const meta = POOL_META[activePool] || POOL_META.gemini;
-      document.getElementById('cal-drawer-title').textContent = meta.calTitle;
+      const lim = poolLimits[activePool] || createDefaultPoolState(activePool);
+      const w = (latestData?.usageWindows && latestData.usageWindows[activePool]) || { h5Tokens: 0, w7Tokens: 0 };
+      const now = Date.now();
+
+      const parts = [];
+      const pctW7Str = document.getElementById('inp-pct-w7').value.trim();
+      const rstW7Str = document.getElementById('inp-rst-w7').value.trim();
+      if (pctW7Str !== '') {
+        const pctW7 = parseFloat(pctW7Str);
+        if (Number.isFinite(pctW7) && pctW7 >= 0 && pctW7 <= 100) {
+          if (rstW7Str && parseDurationMs(rstW7Str, SEVEN_DAYS_MS)) {
+            parts.push(`7d: recount & sync to ${Math.round(pctW7)}%`);
+          } else {
+            const solved = solveWindowCalibration(pctW7, w.w7Tokens || 0, lim.w7, w.w7CycleEnd || 0, SEVEN_DAYS_MS, now);
+            parts.push(solved.offset > 0 ? `7d: baseline ${fmtTokens(solved.offset)} / ${fmtTokens(solved.ceiling)}` : `7d: ~${fmtTokens(solved.ceiling)} ceiling`);
+          }
+        }
+      }
+
+      if (meta.has5h) {
+        const pctH5Str = document.getElementById('inp-pct-h5').value.trim();
+        const rstH5Str = document.getElementById('inp-rst-h5').value.trim();
+        if (pctH5Str !== '') {
+          const pctH5 = parseFloat(pctH5Str);
+          if (Number.isFinite(pctH5) && pctH5 >= 0 && pctH5 <= 100) {
+            if (rstH5Str && parseDurationMs(rstH5Str, FIVE_HOURS_MS)) {
+              parts.push(`5h: recount & sync to ${Math.round(pctH5)}%`);
+            } else {
+              const solved = solveWindowCalibration(pctH5, w.h5Tokens || 0, lim.h5, w.h5CycleEnd || 0, FIVE_HOURS_MS, now);
+              parts.push(solved.offset > 0 ? `5h: baseline ${fmtTokens(solved.offset)} / ${fmtTokens(solved.ceiling)}` : `5h: ~${fmtTokens(solved.ceiling)} ceiling`);
+            }
+          }
+        }
+      }
+
+      previewEl.textContent = parts.length > 0 ? parts.join(' · ') : '';
+    }
+
+    function syncCalibrationInputs() {
+      const lim = poolLimits[activePool] || createDefaultPoolState(activePool);
+      const meta = POOL_META[activePool] || POOL_META.gemini;
+      document.getElementById('cal-drawer-title').textContent = calMode === 'sync' ? meta.syncTitle : meta.calTitle;
+
+      // Sync % mode visibility & clean inputs
+      document.getElementById('cal-sync-h5-row').style.display = meta.has5h ? '' : 'none';
+      if (calMode === 'sync') {
+        document.getElementById('inp-pct-w7').value = '';
+        document.getElementById('inp-rst-w7').value = '';
+        document.getElementById('inp-pct-h5').value = '';
+        document.getElementById('inp-rst-h5').value = '';
+        updateSyncPreview();
+      }
+
+      // Manual (M) mode fields
       const h5Field = document.getElementById('cal-h5-field');
       const calGrid = document.getElementById('cal-grid');
       h5Field.style.display = meta.has5h ? '' : 'none';
@@ -1460,13 +1776,101 @@
       if (calibrating) syncCalibrationInputs();
     }
 
-    function saveCalibration() {
-      const meta = POOL_META[activePool] || POOL_META.gemini;
-      const v5 = parseFloat(document.getElementById('inp-h5').value);
-      const v7 = parseFloat(document.getElementById('inp-w7').value);
-      if (meta.has5h && Number.isFinite(v5) && v5 > 0) poolLimits[activePool].h5 = Math.round(v5 * 1e6);
-      if (Number.isFinite(v7) && v7 > 0) poolLimits[activePool].w7 = Math.round(v7 * 1e6);
+    function resetCalibration() {
+      poolLimits[activePool] = createDefaultPoolState(activePool);
       savePoolLimits();
+      calibrating = false;
+      document.getElementById('cal-drawer').classList.remove('show');
+      const btn = document.getElementById('btn-calibrate');
+      btn.classList.remove('active');
+      btn.setAttribute('aria-expanded', 'false');
+      fetchMetrics();
+    }
+
+    async function saveCalibration() {
+      const meta = POOL_META[activePool] || POOL_META.gemini;
+      const lim = poolLimits[activePool];
+      const now = Date.now();
+
+      if (calMode === 'manual') {
+        const v5 = parseFloat(document.getElementById('inp-h5').value);
+        const v7 = parseFloat(document.getElementById('inp-w7').value);
+        if (meta.has5h && Number.isFinite(v5) && v5 > 0) {
+          lim.h5 = Math.round(v5 * 1e6);
+          lim.h5Offset = 0;
+          lim.h5OffsetEnd = 0;
+        }
+        if (Number.isFinite(v7) && v7 > 0) {
+          lim.w7 = Math.round(v7 * 1e6);
+          lim.w7Offset = 0;
+          lim.w7OffsetEnd = 0;
+        }
+        lim.calibrated = true;
+        savePoolLimits();
+      } else {
+        const pctW7Raw = document.getElementById('inp-pct-w7').value.trim();
+        const rstW7Ms = parseDurationMs(document.getElementById('inp-rst-w7').value, SEVEN_DAYS_MS);
+        const pctH5Raw = meta.has5h ? document.getElementById('inp-pct-h5').value.trim() : '';
+        const rstH5Ms = meta.has5h ? parseDurationMs(document.getElementById('inp-rst-h5').value, FIVE_HOURS_MS) : null;
+
+        let anchorUpdated = false;
+        if (rstW7Ms) {
+          lim.w7ResetAt = now + rstW7Ms;
+          anchorUpdated = true;
+        }
+        if (rstH5Ms) {
+          lim.h5ResetAt = now + rstH5Ms;
+          anchorUpdated = true;
+        }
+
+        // If the user pinned a new reset time, recount local tokens inside the
+        // exact pinned cycle on the server BEFORE solving the ceiling.
+        if (anchorUpdated) {
+          savePoolLimits();
+          await fetchMetrics();
+        }
+
+        const w = (latestData?.usageWindows && latestData.usageWindows[activePool]) || {
+          h5Tokens: 0, h5CycleEnd: 0, w7Tokens: 0, w7CycleEnd: 0,
+        };
+        const afterNow = Date.now();
+        let needsRefetch = false;
+
+        if (pctW7Raw !== '') {
+          const pctW7 = parseFloat(pctW7Raw);
+          if (Number.isFinite(pctW7) && pctW7 >= 0 && pctW7 <= 100) {
+            const solved = solveWindowCalibration(pctW7, w.w7Tokens || 0, lim.w7, w.w7CycleEnd || 0, SEVEN_DAYS_MS, afterNow);
+            lim.w7 = solved.ceiling;
+            lim.w7Offset = solved.offset;
+            lim.w7OffsetEnd = solved.offsetEnd;
+            if (solved.needsResetAt && !rstW7Ms) {
+              lim.w7ResetAt = solved.needsResetAt;
+              needsRefetch = true;
+            }
+            lim.calibrated = true;
+          }
+        }
+
+        if (meta.has5h && pctH5Raw !== '') {
+          const pctH5 = parseFloat(pctH5Raw);
+          if (Number.isFinite(pctH5) && pctH5 >= 0 && pctH5 <= 100) {
+            const solved = solveWindowCalibration(pctH5, w.h5Tokens || 0, lim.h5, w.h5CycleEnd || 0, FIVE_HOURS_MS, afterNow);
+            lim.h5 = solved.ceiling;
+            lim.h5Offset = solved.offset;
+            lim.h5OffsetEnd = solved.offsetEnd;
+            if (solved.needsResetAt && !rstH5Ms) {
+              lim.h5ResetAt = solved.needsResetAt;
+              needsRefetch = true;
+            }
+            lim.calibrated = true;
+          }
+        }
+
+        if (anchorUpdated) lim.calibrated = true;
+        savePoolLimits();
+        if (needsRefetch) await fetchMetrics();
+      }
+
       calibrating = false;
       document.getElementById('cal-drawer').classList.remove('show');
       const btn = document.getElementById('btn-calibrate');
@@ -1495,53 +1899,89 @@
 
       document.getElementById('usage-group-title').textContent = meta.label;
       document.getElementById('q7-title').textContent = meta.weeklyTitle;
-      const calBtn = document.getElementById('btn-calibrate');
-      calBtn.title = `Calibrate ${meta.label} limits`;
-      calBtn.setAttribute('aria-label', `Calibrate ${meta.label} limits`);
 
       const w = (usageWindows && usageWindows[activePool]) || {
-        h5Tokens: 0, h5Calls: 0, h5Sub: 0, reset5hSec: 0,
-        w7Tokens: 0, w7Calls: 0, w7Sub: 0, reset7dSec: 0,
+        h5Tokens: 0, h5Calls: 0, h5Sub: 0, reset5hSec: 0, h5CycleEnd: 0, h5Pinned: false,
+        w7Tokens: 0, w7Calls: 0, w7Sub: 0, reset7dSec: 0, w7CycleEnd: 0, w7Pinned: false,
       };
-      const lim = poolLimits[activePool] || DEFAULT_LIMITS[activePool];
+      const lim = poolLimits[activePool] || createDefaultPoolState(activePool);
+      const now = Date.now();
+      const eff = computeEffectiveUsage(w, lim, now);
 
-      const w7Rem = lim.w7 > 0 ? Math.max(0, Math.min(100, Math.round((1 - w.w7Tokens / lim.w7) * 100))) : 100;
-      const h5Rem = lim.h5 > 0 ? Math.max(0, Math.min(100, Math.round((1 - w.h5Tokens / lim.h5) * 100))) : 100;
-      const w7Color = remainingRingColor(w7Rem);
-      const h5Color = remainingRingColor(h5Rem);
+      const w7NeedsSync = !lim.calibrated && eff.effW7Tokens >= lim.w7;
+      const h5NeedsSync = meta.has5h && !lim.calibrated && eff.effH5Tokens >= lim.h5;
+      const anyNeedsSync = w7NeedsSync || h5NeedsSync;
+
+      const calBtn = document.getElementById('btn-calibrate');
+      const calLabel = document.getElementById('btn-calibrate-label');
+      calBtn.classList.toggle('needs-sync', anyNeedsSync && !calibrating);
+      calLabel.textContent = anyNeedsSync ? 'Sync %' : 'Calibrate';
+      calBtn.title = anyNeedsSync ? `Sync ${meta.label} with Antigravity Settings` : `Calibrate ${meta.label} limits`;
+      calBtn.setAttribute('aria-label', calBtn.title);
+
+      const w7Rem = lim.w7 > 0 ? Math.max(0, Math.min(100, Math.round((1 - eff.effW7Tokens / lim.w7) * 100))) : 100;
+      const h5Rem = lim.h5 > 0 ? Math.max(0, Math.min(100, Math.round((1 - eff.effH5Tokens / lim.h5) * 100))) : 100;
 
       // Weekly row (Row 1, matching Antigravity Settings)
-      document.getElementById('q7-pct').textContent = `${w7Rem}%`;
+      const q7PctEl = document.getElementById('q7-pct');
       const q7Ring = document.getElementById('q7-ring');
-      q7Ring.style.strokeDashoffset = String(QUOTA_RING_CIRC * (1 - w7Rem / 100));
-      q7Ring.style.stroke = w7Color;
       const q7Prog = document.getElementById('q7-progress');
-      q7Prog.setAttribute('aria-label', `${meta.label} weekly limit remaining`);
-      q7Prog.setAttribute('aria-valuenow', String(w7Rem));
-      const q7Desc = w.w7Calls > 0
-        ? `${fmtTokens(w.w7Tokens)} / ${fmtTokens(lim.w7)} · ${fmtRefresh7d(w.reset7dSec, w.w7Calls)}`
-        : fmtRefresh7d(0, 0);
       const q7DescEl = document.getElementById('q7-desc');
-      q7DescEl.textContent = q7Desc;
-      q7DescEl.title = q7Desc;
+      q7Prog.setAttribute('aria-label', `${meta.label} weekly limit remaining`);
+
+      if (w7NeedsSync) {
+        q7PctEl.textContent = '—';
+        q7PctEl.classList.add('muted');
+        q7Ring.style.strokeDashoffset = String(QUOTA_RING_CIRC);
+        q7Ring.style.stroke = 'var(--ring-track)';
+        q7Prog.setAttribute('aria-valuenow', '0');
+        const q7Desc = `${fmtTokens(eff.effW7Tokens)} used · Sync % to calibrate`;
+        q7DescEl.textContent = q7Desc;
+        q7DescEl.title = q7Desc;
+      } else {
+        q7PctEl.textContent = `${w7Rem}%`;
+        q7PctEl.classList.remove('muted');
+        q7Ring.style.strokeDashoffset = String(QUOTA_RING_CIRC * (1 - w7Rem / 100));
+        q7Ring.style.stroke = remainingRingColor(w7Rem);
+        q7Prog.setAttribute('aria-valuenow', String(w7Rem));
+        const q7Desc = eff.hasW7Activity
+          ? `${fmtTokens(eff.effW7Tokens)} / ${fmtTokens(lim.w7)} · ${fmtRefresh7d(eff.effW7ResetSec, eff.hasW7Activity)}`
+          : fmtRefresh7d(0, false);
+        q7DescEl.textContent = q7Desc;
+        q7DescEl.title = q7Desc;
+      }
 
       // 5-Hour row (Row 2 — shown for Gemini and Claude+GPT, hidden for Argon Weekly-only pool)
       const q5Row = document.getElementById('q5-row');
       q5Row.style.display = meta.has5h ? '' : 'none';
       if (meta.has5h) {
-        document.getElementById('q5-pct').textContent = `${h5Rem}%`;
+        const q5PctEl = document.getElementById('q5-pct');
         const q5Ring = document.getElementById('q5-ring');
-        q5Ring.style.strokeDashoffset = String(QUOTA_RING_CIRC * (1 - h5Rem / 100));
-        q5Ring.style.stroke = h5Color;
         const q5Prog = document.getElementById('q5-progress');
-        q5Prog.setAttribute('aria-label', `${meta.label} five hour limit remaining`);
-        q5Prog.setAttribute('aria-valuenow', String(h5Rem));
-        const q5Desc = w.h5Calls > 0
-          ? `${fmtTokens(w.h5Tokens)} / ${fmtTokens(lim.h5)} · ${fmtRefresh5h(w.reset5hSec, w.h5Calls)}`
-          : fmtRefresh5h(0, 0);
         const q5DescEl = document.getElementById('q5-desc');
-        q5DescEl.textContent = q5Desc;
-        q5DescEl.title = q5Desc;
+        q5Prog.setAttribute('aria-label', `${meta.label} five hour limit remaining`);
+
+        if (h5NeedsSync) {
+          q5PctEl.textContent = '—';
+          q5PctEl.classList.add('muted');
+          q5Ring.style.strokeDashoffset = String(QUOTA_RING_CIRC);
+          q5Ring.style.stroke = 'var(--ring-track)';
+          q5Prog.setAttribute('aria-valuenow', '0');
+          const q5Desc = `${fmtTokens(eff.effH5Tokens)} used · Sync % to calibrate`;
+          q5DescEl.textContent = q5Desc;
+          q5DescEl.title = q5Desc;
+        } else {
+          q5PctEl.textContent = `${h5Rem}%`;
+          q5PctEl.classList.remove('muted');
+          q5Ring.style.strokeDashoffset = String(QUOTA_RING_CIRC * (1 - h5Rem / 100));
+          q5Ring.style.stroke = remainingRingColor(h5Rem);
+          q5Prog.setAttribute('aria-valuenow', String(h5Rem));
+          const q5Desc = eff.hasH5Activity
+            ? `${fmtTokens(eff.effH5Tokens)} / ${fmtTokens(lim.h5)} · ${fmtRefresh5h(eff.effH5ResetSec, eff.hasH5Activity)}`
+            : fmtRefresh5h(0, false);
+          q5DescEl.textContent = q5Desc;
+          q5DescEl.title = q5Desc;
+        }
       }
 
       const q5Sum = document.getElementById('q5-summary');
@@ -1700,14 +2140,17 @@
       const qs = new URLSearchParams(window.location.search);
       const convId = qs.get('conversationId') || '';
       const token = qs.get('token') || '';
-      const url = `/api/metrics?conversationId=${encodeURIComponent(convId)}${token ? '&token=' + encodeURIComponent(token) : ''}`;
+      const anchors = buildAnchorsQuery();
+      const url = `/api/metrics?conversationId=${encodeURIComponent(convId)}${token ? '&token=' + encodeURIComponent(token) : ''}${anchors ? '&anchors=' + encodeURIComponent(anchors) : ''}`;
       try {
         const res = await fetch(url, { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           render(data);
+          return data;
         }
       } catch {}
+      return null;
     }
 
     function fallbackCopy(text) {
@@ -1747,7 +2190,7 @@
       }, 1500);
     }
 
-    ['inp-h5', 'inp-w7'].forEach(id => {
+    ['inp-pct-w7', 'inp-rst-w7', 'inp-pct-h5', 'inp-rst-h5', 'inp-h5', 'inp-w7'].forEach(id => {
       const el = document.getElementById(id);
       if (el) {
         el.addEventListener('keydown', e => {
